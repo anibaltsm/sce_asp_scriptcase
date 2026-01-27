@@ -1,0 +1,4 @@
+sc_reset_apl_status();
+sc_reset_global([usr_login], [usr_email],[generacion], [prog], [entrev]);
+
+

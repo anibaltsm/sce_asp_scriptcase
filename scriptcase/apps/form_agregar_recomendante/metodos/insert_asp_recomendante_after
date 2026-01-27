@@ -1,0 +1,36 @@
+mi_log("═══════════════════════════════════════════════════════════");
+mi_log("📋 insert_asp_recomendante_after INICIO");
+
+$id_asp = isset($_SESSION['id_asp']) && $_SESSION['id_asp'] !== '' ? $_SESSION['id_asp'] : (isset({id_asp}) ? {id_asp} : '');
+mi_log("id_asp: '" . (string)$id_asp . "'");
+
+if (empty($id_asp)) {
+    mi_log("❌ Falta id_asp. Abort.");
+    sc_error_message("No se encontró id_asp en sesión.");
+    return;
+}
+
+sc_lookup(rs_id, "SELECT LAST_INSERT_ID() AS id");
+$id_recom = {rs_id[0][0]};
+mi_log("LAST_INSERT_ID (id_recom): " . (string){rs_id[0][0]});
+
+$id_asp_limpio = ltrim($id_asp, "0");
+if (empty($id_asp_limpio)) {
+    $id_asp_limpio = "0";
+}
+
+sc_lookup(rs_num, "SELECT COUNT(*) AS n FROM asp_recomendantes WHERE CAST(id_asp_FK AS UNSIGNED) = " . (int)$id_asp_limpio);
+$num_req = (int){rs_num[0][0]} + 1;
+mi_log("num_req calculado: $num_req");
+
+$sql = "INSERT INTO asp_recomendantes (id_asp_FK, id_recom_FK, num_req) VALUES (" . sc_sql_injection($id_asp) . ", " . sc_sql_injection($id_recom) . ", " . $num_req . ")";
+mi_log("SQL: " . $sql);
+sc_exec_sql($sql);
+
+if (function_exists('sc_commit_trans')) {
+    sc_commit_trans();
+    mi_log("sc_commit_trans OK");
+}
+
+mi_log("sc_redir grid_asp_recomendantes");
+sc_redir('grid_asp_recomendantes');

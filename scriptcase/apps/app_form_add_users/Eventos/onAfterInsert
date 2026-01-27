@@ -1,0 +1,5 @@
+add_user_to_group({login});
+add_asp_aspirantes({login},{name},{apat},{amat},{email});
+send_mail_to_new_user();
+sc_commit_trans();
+//sc_redir('app_Login');

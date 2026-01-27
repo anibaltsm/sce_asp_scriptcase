@@ -1,0 +1,7 @@
+mi_log("onBeforeInsert INICIO — nombre={nombre} apellido_p={apellido_p} correo={correo}");
+
+if (!validar_recomendante({nombre}, {apellido_p}, {correo})) {
+    mi_log("onBeforeInsert ABORT (validar_recomendante false)");
+    return false;
+}
+mi_log("onBeforeInsert OK, sigue inserción");

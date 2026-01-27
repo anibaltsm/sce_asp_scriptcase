@@ -1,0 +1,126 @@
+$slogin = sc_sql_injection({login});
+$spswd = sc_sql_injection(({pswd}));
+
+$sql = "SELECT 
+		priv_admin,
+		active, 
+		name, 
+		email 
+	      FROM sec_asp_users 
+	      WHERE login = $slogin
+		AND pswd = ".$spswd."";
+	
+sc_lookup(rs, $sql);
+	
+if(count({rs}) == 0)
+{
+	sc_log_add('login Fail', {lang_login_fail} . {login});	
+	sc_error_message({lang_error_login});
+}
+else if({rs[0][1]} == 'Y')
+{
+	[usr_login]		= {login};
+	[usr_priv_admin]= ({rs[0][0]} == 'Y') ? TRUE : FALSE;
+	[usr_name]		= {rs[0][2]};
+	[usr_email]		= {rs[0][3]};
+	
+	$gen='SELECT generacion FROM sce.convocatorias_posg WHERE cc_activa=1 AND id_prog_FK<>9';
+	sc_lookup(rs0,$gen);
+	[generacion] = {rs0[0][0]};		
+	
+/*	$qry_grupo_usr="SELECT group_id FROM sec_asp_users_groups WHERE login='".[usr_login]."'";
+	sc_lookup(res,$qry_grupo_usr);
+	[glo_grupo] = {res[0][0]};*/
+	
+	/*if(([glo_grupo]==4)||([glo_grupo]==5)){
+		$identrev='SELECT id_prog_FK FROM entrevistadores WHERE login_FK="'.[usr_login].'" AND generacion='.[generacion];
+		sc_lookup(rs1,$identrev);
+		[prog] = {rs1[0][0]};	
+	}*/
+}
+else
+{
+	sc_error_message({lang_error_not_active});
+	sc_error_exit();
+}
+
+
+
+/**********************Código que funciona***************
+$slogin = sc_sql_injection({login});
+$spswd = sc_sql_injection(({pswd}));
+
+$sql = "SELECT 
+		priv_admin,
+		active, 
+		name, 
+		email 
+	      FROM sec_asp_users 
+	      WHERE login = $slogin
+		AND pswd = ".$spswd."";
+	
+sc_lookup(rs, $sql);
+	
+if(count({rs}) == 0)
+{
+	sc_log_add('login Fail', {lang_login_fail} . {login});
+	
+	sc_error_message({lang_error_login});
+}
+else if({rs[0][1]} == 'Y')
+{
+	[usr_login]		= {login};
+	[usr_priv_admin]= ({rs[0][0]} == 'Y') ? TRUE : FALSE;
+	[usr_name]		= {rs[0][2]};
+	[usr_email]		= {rs[0][3]};
+}
+else
+{
+	sc_error_message({lang_error_not_active});
+	sc_error_exit();
+}
+
+//**********************Fin código que funciona****************/
+
+
+/*
+if(sc_logged_is_blocked()) { sc_error_exit(); }
+
+$slogin = sc_sql_injection({login});
+$spswd = sc_sql_injection(({pswd}));
+
+$sql = "SELECT 
+		priv_admin,
+		active, 
+		name, 
+		email 
+	      FROM sec_asp_users 
+	      WHERE login = $slogin
+		AND pswd = ".$spswd."";
+	
+sc_lookup(rs, $sql);
+	
+if(count({rs}) == 0)
+{
+	sc_log_add('login Fail', {lang_login_fail} . {login});
+	sc_logged_in_fail({login});
+	sc_error_message({lang_error_login});
+}
+else if({rs[0][1]} == 'Y')
+{
+	$usr_login		= {login};
+	$usr_priv_admin 	= ({rs[0][0]} == 'Y') ? TRUE : FALSE;
+	$usr_name		= {rs[0][2]};
+	$usr_email		= {rs[0][3]};
+	$sp	= {rs[0][4]};
+	sc_set_global($usr_login);
+	sc_set_global($usr_priv_admin);
+	sc_set_global($usr_name);
+	sc_set_global($usr_email);
+	sc_set_global($sp);
+}
+else
+{
+	sc_error_message({lang_error_not_active});
+	sc_error_exit();
+}*/

@@ -1,0 +1,10 @@
+$chars = 'abcdefghijklmnopqrstuvxywz';
+$chars .= 'ABCDEFGHIJKLMNOPQRSTUVXYWZ';
+$chars .= '0123456789!_';
+$max = strlen($chars)-1;
+$num_rand='';
+for($i=0; $i < 4; $i++)
+{
+	$num_rand .= $chars[mt_rand(0, $max)];
+}
+return $num_rand;

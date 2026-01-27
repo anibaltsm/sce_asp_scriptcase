@@ -1,0 +1,11 @@
+	$group_default = 2;
+
+	
+	$sql = "INSERT INTO
+				sec_asp_users_groups( login, group_id )
+			VALUES 
+				(". sc_sql_injection($login). ", ".
+					sc_sql_injection($group_default) . ")";
+
+	sc_exec_sql($sql);
+    

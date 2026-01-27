@@ -1,0 +1,168 @@
+// ============================================================================
+// PASO 1: OBTENER GENERACIÓN ACTIVA ANTES DEL INSERT
+// ============================================================================
+$get_gen_activa = 'SELECT generacion 
+                   FROM sce.convocatorias_posg 
+                   WHERE cc_activa=1 
+                   AND (id_prog_FK<>9 OR ISNULL(id_prog_FK))
+                   LIMIT 1';
+sc_lookup(rs_gen_activa, $get_gen_activa);
+
+// Verificar que haya convocatoria activa
+if (isset({rs_gen_activa[0][0]}) && !empty({rs_gen_activa[0][0]})) {
+    $generacion_activa = {rs_gen_activa[0][0]};
+} else {
+    sc_error_message("No hay convocatoria activa. Contacte al administrador.");
+    exit;
+}
+
+// ============================================================================
+// PASO 2: INSERTAR ASPIRANTE CON GENERACIÓN
+// ============================================================================
+$sql = "INSERT INTO aspirantes(nombres, ap_pat, ap_mat, email, login_FK, generacion, login_insert, fecha_alta, ip_alta) 
+        VALUES (". sc_sql_injection($name). ", 
+                ". sc_sql_injection($apat). ", 
+                ". sc_sql_injection($amat). ", 
+                ". sc_sql_injection($email). ", 
+                ". sc_sql_injection($login). ", 
+                ". $generacion_activa. ", 
+                ". sc_sql_injection($login). ", 
+                NOW(),
+                '".{ip_alta}. "')";
+
+sc_exec_sql($sql);
+
+// Obtiene el numero de id_asp que se acaba de ingresar
+sc_lookup(rs14, "SELECT @@identity AS id");
+$id_asp = {rs14[0][0]};
+
+// Log para debug
+error_log("REGISTRO: Nuevo aspirante creado - id_asp=" . $id_asp . ", generacion=" . $generacion_activa . ", login=" . $login);
+
+// ============================================================================
+// PASO 3: INSERTAR REQUISITOS
+// ============================================================================
+$requisitos = "SELECT list_req_gral.id_lisreq, list_req_gral.num_requisito, cc_mostrar_usu 
+               FROM sce.list_req_gral
+               INNER JOIN sce.convocatorias_posg ON convocatorias_posg.id_conv = list_req_gral.id_conv_FK
+               WHERE sce.convocatorias_posg.cc_activa=1 
+               AND (sce.convocatorias_posg.id_prog_FK<>9 OR ISNULL(sce.convocatorias_posg.id_prog_FK)) 
+               ORDER BY list_req_gral.num_requisito ASC";
+
+sc_lookup(rs1, $requisitos);
+$num = count({rs1});
+
+if (count({rs1}) != 0) {
+    for ($x = 0; $x < $num; $x++) {
+        $lisreq = {rs1[$x][0]};
+        $num_req = {rs1[$x][1]};
+        $usu = {rs1[$x][2]};
+        
+        $ins_sql = "INSERT INTO asp_requisitos(id_asp_FK, login_FK, id_lisreq_FK, num_req, login_insert, fecha_alta, ip_alta, usu_carga_req)
+                    VALUES (".$id_asp.",
+                            ".sc_sql_injection($login).",
+                            '".$lisreq."',
+                            '".$num_req."',
+                            ".sc_sql_injection($login).",
+                            NOW(),
+                            '".{ip_alta}."',
+                            '".$usu."')";
+        
+        sc_exec_sql($ins_sql);
+    }
+}
+
+// ============================================================================
+// PASO 4: CREAR REFERENCIA DE PAGO EN PRODUCCIÓN (ACTUALIZADO)
+// ============================================================================
+
+function get_client_ip() {
+    $ipaddress = '';
+    if (getenv('HTTP_CLIENT_IP'))
+        $ipaddress = getenv('HTTP_CLIENT_IP');
+    else if(getenv('HTTP_X_FORWARDED_FOR'))
+        $ipaddress = getenv('HTTP_X_FORWARDED_FOR');
+    else if(getenv('HTTP_X_FORWARDED'))
+        $ipaddress = getenv('HTTP_X_FORWARDED');
+    else if(getenv('HTTP_FORWARDED_FOR'))
+        $ipaddress = getenv('HTTP_FORWARDED_FOR');
+    else if(getenv('HTTP_FORWARDED'))
+       $ipaddress = getenv('HTTP_FORWARDED');
+    else if(getenv('REMOTE_ADDR'))
+        $ipaddress = getenv('REMOTE_ADDR');
+    else
+        $ipaddress = 'UNKNOWN';
+    return $ipaddress;
+}
+
+// Limpiar id_asp de ceros
+$id_asp_limpio = ltrim($id_asp, "0");
+if (empty($id_asp_limpio)) {
+    $id_asp_limpio = "0";
+}
+
+// ✅ IMPORTANTE: Usar conexión conn_sce (apunta a producción)
+// Verificar si ya existe un pago en PRODUCCIÓN
+$check_pago = 'SELECT id_pago FROM sce.pagos WHERE id_asp_FK=' . $id_asp_limpio . ' AND group_id_FK="5"';
+sc_lookup(rs_check_pago, $check_pago, 'conn_sce');
+
+error_log("REGISTRO: Verificando pago existente en PRODUCCIÓN para id_asp=" . $id_asp_limpio);
+
+if (!isset({rs_check_pago[0][0]})) {
+    
+    error_log("REGISTRO: No existe pago en PRODUCCIÓN, creando nuevo...");
+    
+    $new_ip = get_client_ip();
+    
+    // Generar referencia
+    $datosinceros = $id_asp_limpio;
+    $dato = strlen($datosinceros);
+    
+    if ($dato <= 3) {
+        if ($dato == 1) { $ceros = '000'; }
+        elseif ($dato == 2) { $ceros = '00'; }
+        elseif ($dato == 3) { $ceros = '0'; }
+        else { $ceros = ''; }
+        $referencia = "INECOLPA0002" . $ceros . $datosinceros . "00";
+    } else {
+        $referencia = "INECOLPA0002" . $datosinceros . "00";
+    }
+    
+    $nombre_completo = $name . " " . $apat . " " . $amat;
+    
+    error_log("REGISTRO: Referencia generada=" . $referencia . ", id_asp_FK=" . $datosinceros);
+    
+    // ✅ INSERTAR PAGO EN PRODUCCIÓN usando conn_sce
+    $qry_insert_pago = "INSERT INTO sce.pagos (
+                            group_id_FK, 
+                            id_asp_FK, 
+                            nombre_interesado, 
+                            concepto, 
+                            monto, 
+                            referencia, 
+                            login_insert, 
+                            fecha_alta, 
+                            ip_alta
+                        ) VALUES (
+                            '5', 
+                            " . $datosinceros . ", 
+                            " . sc_sql_injection($nombre_completo) . ", 
+                            'Derecho al proceso de seleccion " . $generacion_activa . "',
+                            '600',
+                            '" . $referencia . "',
+                            " . sc_sql_injection($login) . ",
+                            NOW(),
+                            '" . $new_ip . "'
+                        )";
+    
+    // ✅ Especificar que use la conexión conn_sce (producción)
+    sc_exec_sql($qry_insert_pago, 'conn_sce');
+    
+    error_log("REGISTRO: Pago insertado en PRODUCCIÓN exitosamente - referencia=" . $referencia);
+    
+    sc_alert("Usuario creado exitosamente.\n\nReferencia de pago: " . $referencia . "\nGeneracion: " . $generacion_activa . "\nId: " . $datosinceros);
+    
+} else {
+    error_log("REGISTRO: Ya existe pago en PRODUCCIÓN para id_asp=" . $id_asp_limpio);
+    sc_alert("Usuario creado exitosamente. Ya existia una referencia de pago para este aspirante.");
+}

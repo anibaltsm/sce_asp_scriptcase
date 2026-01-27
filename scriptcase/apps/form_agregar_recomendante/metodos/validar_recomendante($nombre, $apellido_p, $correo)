@@ -1,0 +1,55 @@
+mi_log("═══════════════════════════════════════════════════════════");
+mi_log("📋 validar_recomendante INICIO");
+
+$id_asp = isset($_SESSION['id_asp']) && $_SESSION['id_asp'] !== '' ? $_SESSION['id_asp'] : (isset({id_asp}) ? {id_asp} : '');
+mi_log("id_asp: '" . (string)$id_asp . "' (session=" . (isset($_SESSION['id_asp']) ? 'SÍ' : 'NO') . ")");
+
+if (empty($id_asp)) {
+    mi_log("❌ Falta id_asp en sesión.");
+    sc_error_message("No se encontró id_asp en sesión.");
+    return false;
+}
+
+$nombre     = trim($nombre);
+$apellido_p = trim($apellido_p);
+$correo     = trim($correo);
+mi_log("nombre='$nombre' apellido_p='$apellido_p' correo='$correo'");
+
+if (empty($nombre) || empty($apellido_p) || empty($correo)) {
+    mi_log("❌ Campos obligatorios vacíos.");
+    sc_error_message("Los campos Nombre, Apellido paterno y Correo son obligatorios.");
+    return false;
+}
+
+if (!filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+    mi_log("❌ Correo no válido: $correo");
+    sc_error_message("El correo no es válido.");
+    return false;
+}
+
+$id_asp_limpio = ltrim($id_asp, "0");
+if (empty($id_asp_limpio)) {
+    $id_asp_limpio = "0";
+}
+
+sc_lookup(rs_count, "SELECT COUNT(*) AS n FROM asp_recomendantes WHERE CAST(id_asp_FK AS UNSIGNED) = " . (int)$id_asp_limpio);
+$n = isset({rs_count[0][0]}) ? (int){rs_count[0][0]} : 0;
+mi_log("COUNT asp_recomendantes para id_asp=$id_asp_limpio: $n");
+
+if ($n >= 3) {
+    mi_log("❌ Ya tiene 3 recomendantes.");
+    sc_error_message("Ya tienes 3 recomendantes asignados.");
+    return false;
+}
+
+$correo_esc = sc_sql_injection($correo);
+sc_lookup(rs_dup, "SELECT COUNT(*) AS n FROM asp_recomendantes ar INNER JOIN recomendantes r ON ar.id_recom_FK = r.id_recom WHERE CAST(ar.id_asp_FK AS UNSIGNED) = " . (int)$id_asp_limpio . " AND r.correo = " . $correo_esc);
+$dup = isset({rs_dup[0][0]}) ? (int){rs_dup[0][0]} : 0;
+if ($dup > 0) {
+    mi_log("❌ Correo ya asignado: $correo");
+    sc_error_message("Este recomendante ya está asignado.");
+    return false;
+}
+
+mi_log("✅ validar_recomendante OK");
+return true;

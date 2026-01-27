@@ -1,0 +1,2 @@
+sc_reset_apl_conf("app_form_add_users");
+sc_reset_apl_conf("app_retrieve_pswd");

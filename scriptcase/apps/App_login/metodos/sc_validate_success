@@ -1,0 +1,304 @@
+/*******************************************************************************
+ * EVENTO: onValidateSuccess (ScriptCase)
+ * PROPÓSITO: Sistema de control de permisos y redirección de menú según tipo de usuario
+ * 
+ * FLUJO GENERAL:
+ * 1. Consulta permisos de las aplicaciones según grupos del usuario
+ * 2. Aplica los permisos a cada aplicación (acceso, insert, delete, update, export, print)
+ * 3. Determina el tipo de usuario consultando sec_asp_users_groups
+ * 4. Redirige al menú correspondiente según el tipo de usuario (casos 1-6)
+ * 
+ * TIPOS DE USUARIO:
+ * - Case 1: Administrador general → menu
+ * - Case 2: Aspirante → menu_aspirante (con lógica de reactivación)
+ * - Case 3: Administrativo → menu_admvo
+ * - Case 4: Entrevistador → menu_eval_gral_2025
+ * - Case 5: Investigador → menu_inv
+ * - Case 6: Subdirector de Posgrado → menu_sp
+ ******************************************************************************/
+
+// ============================================================================
+// PASO 1: CONSULTAR PERMISOS DE APLICACIONES SEGÚN GRUPOS DEL USUARIO
+// ============================================================================
+// Obtiene todos los permisos de las aplicaciones a las que tiene acceso
+// el usuario según los grupos a los que pertenece
+$sql = "SELECT 
+            app_name,
+            priv_access,
+            priv_insert,
+            priv_delete,
+            priv_update,
+            priv_export,
+            priv_print
+        FROM sec_asp_groups_apps
+        WHERE group_id IN
+            (SELECT group_id
+             FROM sec_asp_users_groups 
+             WHERE login = '". [usr_login] ."')";
+
+sc_select(rs, $sql);
+
+// ============================================================================
+// PASO 2: DEFINIR PERMISOS POR DEFECTO (TODOS DESACTIVADOS)
+// ============================================================================
+// Valores predeterminados para aplicaciones sin permisos explícitos
+$arr_default = array(
+    'access' => 'off',                  // Sin acceso por defecto
+    'insert' => 'off',                  // Sin inserción
+    'delete' => 'off',                  // Sin eliminación
+    'update' => 'off',                  // Sin actualización
+    'export' => 'btn_display_off',      // Botón de exportar oculto
+    'print'  => 'btn_display_off',      // Botón de imprimir oculto
+);
+
+// ============================================================================
+// PASO 3: PROCESAR PERMISOS Y APLICARLOS A CADA APLICACIÓN
+// ============================================================================
+if ({rs} !== false) {
+    $arr_perm = array();
+    
+    // Recorrer cada registro de permisos
+    while (!$rs->EOF) {
+        $app = $rs->fields[0];  // Nombre de la aplicación
+        
+        // Inicializar permisos con valores por defecto si es primera vez
+        if (!isset($arr_perm[$app])) {
+            $arr_perm[$app] = $arr_default;
+        }
+        
+        // Activar permisos según valores en BD (Y = Yes)
+        if ($rs->fields[1] == 'Y') {
+            $arr_perm[$app]['access'] = 'on';
+        }
+        if ($rs->fields[2] == 'Y') {
+            $arr_perm[$app]['insert'] = 'on';
+        }
+        if ($rs->fields[3] == 'Y') {
+            $arr_perm[$app]['delete'] = 'on';
+        }
+        if ($rs->fields[4] == 'Y') {
+            $arr_perm[$app]['update'] = 'on';
+        }
+        if ($rs->fields[5] == 'Y') {
+            $arr_perm[$app]['export'] = 'btn_display_on';
+        }
+        if ($rs->fields[6] == 'Y') {
+            $arr_perm[$app]['print'] = 'btn_display_on';
+        }
+        
+        $rs->MoveNext();
+    }
+    $rs->Close();
+    
+    // ========================================================================
+    // PASO 4: APLICAR LOS PERMISOS A CADA APLICACIÓN EN SCRIPTCASE
+    // ========================================================================
+    foreach ($arr_perm as $app => $perm) {
+        // Activar/desactivar acceso a la aplicación
+        sc_apl_status($app, $perm['access']);
+        
+        // Configurar permisos CRUD
+        sc_apl_conf($app, 'insert', $perm['insert']);
+        sc_apl_conf($app, 'delete', $perm['delete']);
+        sc_apl_conf($app, 'update', $perm['update']);
+        
+        // Configurar botones de exportación (múltiples formatos)
+        sc_apl_conf($app, $perm['export'], 'xls');
+        sc_apl_conf($app, $perm['export'], 'word');
+        sc_apl_conf($app, $perm['export'], 'pdf');
+        sc_apl_conf($app, $perm['export'], 'xml');
+        sc_apl_conf($app, $perm['export'], 'csv');
+        sc_apl_conf($app, $perm['export'], 'rtf');
+        
+        // Configurar botón de impresión
+        sc_apl_conf($app, $perm['print'], 'print');
+    }
+    
+    // ========================================================================
+    // PASO 5: REGISTRAR LOGIN EXITOSO EN BITÁCORA
+    // ========================================================================
+    sc_log_add('login', {lang_login_ok});
+    
+    // ========================================================================
+    // PASO 6: OBTENER GENERACIÓN ACTIVA DEL SISTEMA
+    // ========================================================================
+    // Consulta la convocatoria de posgrado activa (excluyendo programa 9)
+    $gen = 'SELECT generacion 
+            FROM sce.convocatorias_posg 
+            WHERE cc_activa=1 
+            AND (id_prog_FK<>9 OR ISNULL(id_prog_FK))';
+    sc_lookup(rs3, $gen);
+    [generacion] = {rs3[0][0]};  // Ej: 2025
+    
+    // ========================================================================
+    // PASO 7: DETERMINAR TIPO DE USUARIO Y REDIRIGIR AL MENÚ CORRESPONDIENTE
+    // ========================================================================
+    // Obtener el group_id del usuario (define su tipo/rol)
+    $sql_command = "SELECT group_id
+                    FROM sec_asp_users_groups
+                    WHERE login='".[usr_login]."'";
+    sc_lookup(ds, $sql_command);
+    $tipousu = {ds[0][0]};
+    sc_set_global($tipousu);
+    
+    // ========================================================================
+    // SWITCH: REDIRECCIÓN SEGÚN TIPO DE USUARIO
+    // ========================================================================
+    switch ($tipousu) {
+        
+        // ====================================================================
+        // CASE 1: ADMINISTRADOR GENERAL
+        // ====================================================================
+        case 1:
+            $menu = 'menu';
+            break;
+        
+        // ====================================================================
+        // CASE 2: ASPIRANTE (CON LÓGICA DE REACTIVACIÓN)
+        // ====================================================================
+        case 2:
+            // ----------------------------------------------------------------
+            // PASO A: Buscar registro del aspirante en la generación ACTUAL
+            // ----------------------------------------------------------------
+            $idasp_actual = 'SELECT id_asp, generacion 
+                             FROM aspirantes 
+                             WHERE login_FK="'.[usr_login].'" 
+                             AND generacion='.[generacion];
+            sc_lookup(rs_actual, $idasp_actual);
+            
+            // ----------------------------------------------------------------
+            // ESCENARIO A: Tiene registro en generación ACTUAL → Acceso normal
+            // ----------------------------------------------------------------
+            if (isset({rs_actual[0][0]}) && !empty({rs_actual[0][0]})) {
+                [id_asp] = {rs_actual[0][0]};
+                $_SESSION['id_asp'] = [id_asp];
+                
+                error_log("✅ LOGIN: Aspirante con registro actual gen=" . [generacion] . 
+                         ", id=" . [id_asp]);
+                
+                $menu = 'menu_aspirante';
+            }
+            // ----------------------------------------------------------------
+            // ESCENARIO B: NO tiene registro actual → Buscar registros anteriores
+            // ----------------------------------------------------------------
+            else {
+                $idasp_anterior = 'SELECT id_asp, generacion, nombres, ap_pat, ap_mat, email
+                                   FROM aspirantes 
+                                   WHERE login_FK="'.[usr_login].'"
+                                   ORDER BY generacion DESC LIMIT 1';
+                sc_lookup(rs_anterior, $idasp_anterior);
+                
+                // Si tiene registro anterior, guardar info para reactivación
+                if (isset({rs_anterior[0][0]}) && !empty({rs_anterior[0][0]})) {
+                    $_SESSION['id_asp_anterior'] = {rs_anterior[0][0]};
+                    $_SESSION['generacion_anterior'] = {rs_anterior[0][1]};
+                    $_SESSION['aspirante_reactivar'] = 'SI';
+                    
+                    error_log("⚠️ LOGIN: Aspirante con registro anterior gen=" . {rs_anterior[0][1]} . 
+                             ", redirigiendo a reactivación");
+                    
+                    // Redirigir a formulario de reactivación
+                    $menu = 'form_reactivar_registro';
+                }
+                // Si no tiene ningún registro (caso anómalo)
+                else {
+                    sc_error_message("No se encontró registro de aspirante para este usuario");
+                    error_log("❌ LOGIN: No se encontró registro para " . [usr_login]);
+                    exit;
+                }
+            }
+            
+            sc_redir($menu);
+            break;
+        
+        // ====================================================================
+        // CASE 3: ADMINISTRATIVO
+        // ====================================================================
+        case 3:
+            $menu = 'menu_admvo';
+            break;
+        
+        // ====================================================================
+        // CASE 4: ENTREVISTADOR
+        // ====================================================================
+        case 4:
+            // Obtener id_entrevistador para la generación actual
+            $identrev = 'SELECT id_entrevistador 
+                         FROM entrevistadores 
+                         WHERE login_FK="'.[usr_login].'" 
+                         AND generacion='.[generacion];
+            sc_lookup(rs1, $identrev);
+            [entrev] = {rs1[0][0]};
+            
+            $menu = 'menu_eval_gral_2025';
+            
+            /* CÓDIGO COMENTADO - Lógica anterior para múltiples registros
+            $cuenta_registros='SELECT COUNT(id_entrevistador) 
+                               FROM entrevistadores 
+                               WHERE login_FK="'.[usr_login].'" 
+                               AND generacion='.[generacion];
+            sc_lookup(rsx, $cuenta_registros);
+            $registros = {rsx[0][0]};
+            
+            if ($registros > 1) {
+                $identrev='SELECT id_entrevistador, id_prog_FK 
+                           FROM entrevistadores 
+                           WHERE login_FK="'.[usr_login].'" 
+                           AND generacion='.[generacion];
+                sc_lookup(rs1, $identrev);
+                $primer_reg = {rs1[1][0]};
+                $segundo_reg = {rs1[1][1]};
+                
+                if ($primer_reg != $segundo_reg) {
+                    $menu = 'menu_eval_gral_2025';
+                }
+            } else {
+                // Lógica para un solo registro
+                [entrev] = {rs1[0][0]};
+                
+                if ([prog] == 7) { 
+                    $menu = 'menu_eval_doc';
+                }
+                if ([prog] == 8) {
+                    $menu = 'menu_eval_mae';
+                }
+            }
+            */
+            break;
+        
+        // ====================================================================
+        // CASE 5: INVESTIGADOR
+        // ====================================================================
+        case 5:
+            // Obtener id_entrevistador y programa del investigador
+            $identrev = 'SELECT id_entrevistador, id_prog_FK 
+                         FROM entrevistadores 
+                         WHERE login_FK="'.[usr_login].'" 
+                         AND generacion='.[generacion];
+            sc_lookup(rs1, $identrev);
+            [entrev] = {rs1[0][0]};
+            [prog] = {rs1[0][1]};
+            
+            $menu = 'menu_inv';
+            break;
+        
+        // ====================================================================
+        // CASE 6: SUBDIRECTOR DE POSGRADO
+        // ====================================================================
+        case 6:
+            // Obtener id_entrevistador y programa del subdirector
+            $identrev = 'SELECT id_entrevistador, id_prog_FK 
+                         FROM entrevistadores 
+                         WHERE login_FK="'.[usr_login].'" 
+                         AND generacion='.[generacion];
+            sc_lookup(rs1, $identrev);
+            [entrev] = {rs1[0][0]};
+            [prog] = {rs1[0][1]};
+            
+            $menu = 'menu_sp';
+            break;
+    }
+    
+    // Redirigir al menú determinado
+    sc_redir($menu);
+}

@@ -1,0 +1,35 @@
+$mail_smtp_server    = 'smtp.gmail.com';
+$mail_smtp_user      = 'sce.posgrado@gmail.com';
+$mail_smtp_pass      = 'fqczuzvfomytleda';
+$mail_from           = 'sce.posgrado@gmail.com';
+$mail_to             = $para;
+$mail_subject        = $asunto;
+$mail_message        = $msj;
+$mail_copies         = $copias;
+$mail_format         = 'H';
+$mail_tp_copies      = 'CCC';
+$mail_port           = '465';                        // ⭐ Puerto 465 (SSL)
+$mail_tp_connection  = 'S';                          // ⭐ Seguridad SSL
+
+sc_mail_send($mail_smtp_server,
+             $mail_smtp_user,
+             $mail_smtp_pass,
+             $mail_from,
+             $mail_to,
+             $mail_subject,
+             $mail_message,
+             $mail_format,
+             $mail_copies,
+             $mail_tp_copies,
+             $mail_port,
+             $mail_tp_connection);
+
+sc_commit_trans();
+
+if({sc_mail_ok}){
+    return true;
+}
+else{
+    sc_error_message({sc_mail_err});
+    return false;
+}

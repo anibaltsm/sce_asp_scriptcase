@@ -1,0 +1,12 @@
+// form_agregar_recomendante — mi_log($mensaje)
+// Solo el cuerpo del método. ScriptCase envuelve en function mi_log($mensaje) { ... }.
+// NO usar <?php ni function mi_log aquí (provoca redeclare).
+// Log: logs/debug_log.txt junto a la app + error_log.
+$log_dir = __DIR__ . '/logs';
+if (!is_dir($log_dir)) {
+    @mkdir($log_dir, 0777, true);
+}
+$log_file = $log_dir . '/debug_log.txt';
+$log_line = '[' . date('Y-m-d H:i:s') . '] ' . $mensaje . "\n";
+@file_put_contents($log_file, $log_line, FILE_APPEND);
+@error_log('form_agregar_recomendante: ' . $mensaje);

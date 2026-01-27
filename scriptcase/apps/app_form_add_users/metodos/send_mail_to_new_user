@@ -1,0 +1,58 @@
+$act_code = act_code();
+$update_sql = 'UPDATE sec_asp_users'
+    . ' SET activation_code = ' . sc_sql_injection($act_code)
+    . ' WHERE login = '. sc_sql_injection({login});
+sc_exec_sql($update_sql);
+
+$mail_to  = {email};
+$url_mess = "<a href='http://posgrados.inecol.mx/sce_asp/app_form_add_users/index.php?a=".$act_code."'>http://posgrados.inecol.mx/sce_asp/app_form_add_users/index.php?a=" . $act_code ." </a>";
+$mail_message='Apreciable <strong>'.{name}.' '.{apat}.' '.{amat}.'</strong><br><br>'
+             .'Los datos de preregistro capturados han sido guardados correctamente. Para ingresar al sistema es necesario '
+             .'actives tu registro dando clic en el siguiente enlace,o bien copia y pega en el navegador: <br><strong><u>'
+             .$url_mess.'</u></strong><br> <br>Tus datos de acceso son los siguientes:<br><br>Usuario:<strong> '
+             .{email}.'</strong><br>Contraseña:<strong>'
+             .{pswd}.'</strong><br><br>'
+             .'Para ingresar regresa a la venta principal del Subsistema de Aspirantes.<br><br>'
+             .'<strong>Por favor no retransmitas esta información a nadie más.</strong>'
+             .'<strong>Esta dirección de correo electrónico no puede recibir respuestas.</strong>';
+$asunto='INECOL. Registro al Subsistema de Aspirantes';
+
+// ⭐ LLAMADA DIRECTA A sc_mail_send (sin función intermedia)
+try {
+    $mail_smtp_server    = 'smtp.gmail.com';
+    $mail_smtp_user      = 'sce.posgrado@gmail.com';
+    $mail_smtp_pass      = 'fqczuzvfomytleda';
+    $mail_from           = 'sce.posgrado@gmail.com';
+    $mail_copies         = 'monica.enriquez@inecol.mx';
+    $mail_format         = 'H';
+    $mail_tp_copies      = 'CCC';
+    $mail_port           = '465';
+    $mail_tp_connection  = 'S';
+    
+    @sc_mail_send($mail_smtp_server,
+                 $mail_smtp_user,
+                 $mail_smtp_pass,
+                 $mail_from,
+                 $mail_to,
+                 $asunto,
+                 $mail_message,
+                 $mail_format,
+                 $mail_copies,
+                 $mail_tp_copies,
+                 $mail_port,
+                 $mail_tp_connection);
+    
+    sc_commit_trans();
+    
+    if({sc_mail_ok}){
+        sc_log_add("Send active code", {lang_sended_active_code});
+    } else {
+        sc_log_add("Email warning", "Email could not be sent");
+    }
+    
+} catch (Exception $e) {
+    error_log("Error email: " . $e->getMessage());
+    sc_log_add("Email failed", "Error: " . $e->getMessage());
+}
+
+sc_alert("Usuario creado exitosamente. Revisa tu correo para activar tu cuenta.");

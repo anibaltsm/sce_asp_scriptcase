@@ -1,0 +1,44 @@
+$sql = "SELECT
+		email
+	FROM
+		sec_asp_users
+	WHERE
+		priv_admin = 'Y'";
+		
+sc_lookup(rs,$sql);
+
+$emails_admin = array();
+if({rs} !== FALSE && count({rs}) != 0)
+{
+	foreach({rs} as $value)
+		$emails_admin[] = $value[0];
+}
+$emails_admin = implode('; ', $emails_admin);
+
+/**
+ * Send a simple email
+ */
+
+// Email parameters
+$mail_smtp_server = 'localhost';        // SMTP server name or IP address
+$mail_smtp_user = 'admin';                   // SMTP user name
+$mail_smtp_pass = 'admin';			// SMTP password
+$mail_from = 'monica.enriquez@inecol.mx';          // From email
+$mail_to          = $emails_admin;         // To email
+
+$mail_message     = sprintf({lang_new_user_sign_in}, {name}, {email}, {email});
+
+$mail_subject     = {lang_subject_mail_new_user}; 
+$mail_format      = 'H';                       // Message format: (T)ext or (H)tml
+
+// Send email
+sc_mail_send($mail_smtp_server,
+             $mail_smtp_user,
+             $mail_smtp_pass,
+             $mail_from,
+             $mail_to,
+             $mail_subject,
+             $mail_message,
+             $mail_format,
+             '','', 'localhost', 'S');
+sc_log_add("New user", {lang_send_mail_admin});

@@ -1,0 +1,3 @@
+sc_validate_success();
+
+//var_dump([generacion]."<br>",[usr_login]."<br>","glo_grupo:".[glo_grupo]."<br>", "programa ".[prog]);
