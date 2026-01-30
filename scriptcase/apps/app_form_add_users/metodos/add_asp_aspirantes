@@ -42,7 +42,7 @@ error_log("REGISTRO: Nuevo aspirante creado - id_asp=" . $id_asp . ", generacion
 // ============================================================================
 // PASO 3: INSERTAR REQUISITOS
 // ============================================================================
-$requisitos = "SELECT list_req_gral.id_lisreq, list_req_gral.num_requisito, cc_mostrar_usu 
+$requisitos = "SELECT list_req_gral.id_lisreq, list_req_gral.num_requisito, cc_mostrar_usu, list_req_gral.cc_carta, list_req_gral.prefijo_requisito 
                FROM sce.list_req_gral
                INNER JOIN sce.convocatorias_posg ON convocatorias_posg.id_conv = list_req_gral.id_conv_FK
                WHERE sce.convocatorias_posg.cc_activa=1 
@@ -57,12 +57,18 @@ if (count({rs1}) != 0) {
         $lisreq = {rs1[$x][0]};
         $num_req = {rs1[$x][1]};
         $usu = {rs1[$x][2]};
+        $cc_carta_val = {rs1[$x][3]};
+        $cc_carta_sql = ($cc_carta_val === '' || $cc_carta_val === null) ? 'NULL' : (int)$cc_carta_val;
+        $prefijo = {rs1[$x][4]};
+        $prefijo_sql = ($prefijo === '' || $prefijo === null) ? 'NULL' : sc_sql_injection($prefijo);
         
-        $ins_sql = "INSERT INTO asp_requisitos(id_asp_FK, login_FK, id_lisreq_FK, num_req, login_insert, fecha_alta, ip_alta, usu_carga_req)
+        $ins_sql = "INSERT INTO asp_requisitos(id_asp_FK, login_FK, id_lisreq_FK, num_req, cc_carta, prefijo_requisito, login_insert, fecha_alta, ip_alta, usu_carga_req)
                     VALUES (".$id_asp.",
                             ".sc_sql_injection($login).",
                             '".$lisreq."',
                             '".$num_req."',
+                            ".$cc_carta_sql.",
+                            ".$prefijo_sql.",
                             ".sc_sql_injection($login).",
                             NOW(),
                             '".{ip_alta}."',
@@ -70,6 +76,28 @@ if (count({rs1}) != 0) {
         
         sc_exec_sql($ins_sql);
     }
+}
+
+// ============================================================================
+// PASO 3.5: INSERTAR 3 RECOMENDANTES (sin correo; lo llena el aspirante) Y ENLAZAR asp_recomendantes
+// num_req en asp_recomendantes = 10, 11, 13 (requisitos tipo carta / cc_carta)
+// ============================================================================
+sc_lookup(rs_max_recom, "SELECT COALESCE(MAX(CAST(id_recom AS UNSIGNED)), 0) + 1 AS next_id FROM recomendantes");
+$next_id_recom = (int){rs_max_recom[0][0]};
+
+$num_req_carta = array(10, 11, 13);  // num_requisito asociados a cc_carta (cartas de recomendación)
+
+for ($r = 0; $r < 3; $r++) {
+    $id_recom_actual = $next_id_recom + $r;
+    $num_req_val = $num_req_carta[$r];
+    
+    $ins_recom = "INSERT INTO recomendantes (id_recom, nombre, apellido_p, apellido_m, correo, num_recom, login_FK)
+                  VALUES (".$id_recom_actual.", NULL, NULL, NULL, NULL, ".($r + 1).", ".sc_sql_injection($login).")";
+    sc_exec_sql($ins_recom);
+    
+    $ins_asp_recom = "INSERT INTO asp_recomendantes (id_asp_FK, id_recom_FK, num_req)
+                      VALUES (".$id_asp.", ".$id_recom_actual.", ".$num_req_val.")";
+    sc_exec_sql($ins_asp_recom);
 }
 
 // ============================================================================
