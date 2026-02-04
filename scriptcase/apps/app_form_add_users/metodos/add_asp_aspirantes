@@ -60,7 +60,7 @@ if (count({rs1}) != 0) {
         $cc_carta_val = {rs1[$x][3]};
         $cc_carta_sql = ($cc_carta_val === '' || $cc_carta_val === null) ? 'NULL' : (int)$cc_carta_val;
         $prefijo = {rs1[$x][4]};
-        $prefijo_sql = ($prefijo === '' || $prefijo === null) ? 'NULL' : sc_sql_injection($prefijo);
+        $prefijo_sql = ($prefijo === '' || $prefijo === null) ? 'NULL' : "'" . addslashes($prefijo) . "'";
         
         $ins_sql = "INSERT INTO asp_requisitos(id_asp_FK, login_FK, id_lisreq_FK, num_req, cc_carta, prefijo_requisito, login_insert, fecha_alta, ip_alta, usu_carga_req)
                     VALUES (".$id_asp.",

@@ -1,0 +1,49 @@
+// Tomar el PDF que Scriptcase guardó, renombrarlo en la misma carpeta. Si ya existe uno con ese nombre, reemplazarlo.
+
+$nombre_original = {archivo};
+if (empty($nombre_original)) {
+    return;
+}
+
+sc_lookup(rs_prefijo, "SELECT prefijo_requisito FROM asp_requisitos WHERE id_asp_req = " . {id_asp_req});
+if (!isset({rs_prefijo[0][0]}) || trim({rs_prefijo[0][0]}) === '') {
+    sc_error_message("No se encontró el prefijo para el requisito.");
+    return;
+}
+$prefijo = trim({rs_prefijo[0][0]});
+
+sc_lookup(rs_gen, "SELECT generacion FROM sce.convocatorias_posg WHERE cc_activa = 1 AND (id_prog_FK <> 9 OR ISNULL(id_prog_FK)) LIMIT 1");
+if (!isset({rs_gen[0][0]}) || trim({rs_gen[0][0]}) === '') {
+    sc_error_message("No hay convocatoria activa.");
+    return;
+}
+$generacion = trim({rs_gen[0][0]});
+
+$id_asp = (int){id_asp_FK};
+$nombre_pdf = $generacion . "_" . $id_asp . "_" . {num_req} . "_" . $prefijo . ".pdf";
+
+// Única carpeta donde Scriptcase guarda (debe coincidir con la configuración del campo)
+$modo_prueba = true;
+$carpeta = $modo_prueba
+    ? "/Applications/Scriptcase/v9-php81/wwwroot/scriptcase/file/doc/cartas/"
+    : "C:/Program Files/NetMake/v9-php81/wwwroot/scriptcase/file/doc/cartas/";
+
+if (!is_dir($carpeta)) {
+    @mkdir($carpeta, 0755, true);
+}
+
+$nombre_archivo = basename($nombre_original);
+$archivo_origen = $carpeta . $nombre_archivo;
+$archivo_destino = $carpeta . $nombre_pdf;
+
+if (!file_exists($archivo_origen)) {
+    sc_error_message("No se encontró el archivo en: " . $carpeta . ". Ajusta la ruta en Scriptcase (ver CONFIGURAR_SCRIPTCASE_CAMPOS_PDF.md).");
+    return;
+}
+
+if (file_exists($archivo_destino)) {
+    @unlink($archivo_destino);
+}
+rename($archivo_origen, $archivo_destino);
+
+sc_exec_sql("UPDATE asp_requisitos SET archivo = '" . addslashes($nombre_pdf) . "' WHERE id_asp_req = " . {id_asp_req});

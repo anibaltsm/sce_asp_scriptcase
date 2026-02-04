@@ -15,6 +15,9 @@ Thumbs.db
 .env.local
 config.local.*
 
+# Carpeta de cartas en servidor de prueba (no subir PDFs de prueba)
+cartas_prueba/
+
 # Directorios de dependencias
 node_modules/
 vendor/
