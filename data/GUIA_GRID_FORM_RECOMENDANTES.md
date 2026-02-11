@@ -2,6 +2,8 @@
 
 Nombres de apps, pasos y consultas para implementar el grid de recomendantes del aspirante y el formulario de alta.
 
+> **Nota:** En el repo la app en uso es **form_recomendantes** (Editable grid). Ver `scriptcase/apps/form_recomendantes/README.md`. La guía siguiente es referencia para grid + form alternativo.
+
 ---
 
 ## Resumen rápido

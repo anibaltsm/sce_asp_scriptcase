@@ -1,9 +1,0 @@
-// Crear la carpeta de documentos si no existe (para que Scriptcase pueda guardar ahí).
-$modo_prueba = true;
-$carpeta = $modo_prueba
-    ? "/Applications/Scriptcase/v9-php81/wwwroot/scriptcase/file/doc/cartas/"
-    : "C:/Program Files/NetMake/v9-php81/wwwroot/scriptcase/file/doc/cartas/";
-
-if (!is_dir($carpeta)) {
-    @mkdir($carpeta, 0755, true);
-}

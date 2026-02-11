@@ -2,19 +2,21 @@
 
 Sigue estos pasos en orden. Cada uno indica **dónde** hacer clic y **qué** pegar o configurar.
 
+> **Nota:** En el repo la app de recomendantes en uso es **form_recomendantes** (Editable grid, Multiple Records). Las apps form_agregar_recomendante y grid_aspirantes_recomendantes fueron eliminadas. Este documento se mantiene como referencia; para la app actual ver `scriptcase/apps/form_recomendantes/README.md`.
+
 ---
 
 ## Antes de empezar
 
 - Base de datos: **`sce_asp`**.
 - El aspirante debe estar logueado (App_login asigna **`id_asp`** en sesión).
-- Nombres de apps:
-  - Grid: **`grid_asp_recomendantes`**
-  - Formulario: **`form_agregar_recomendante`**
+- Nombres de apps en uso:
+  - Grid (opcional): **`grid_asp_recomendantes`**
+  - Formulario: **`form_recomendantes`** (Editable grid para actualizar los 3 recomendantes)
 
-**Estructura en `scriptcase/apps/`** (como `app_form_add_users`):
-- **grid_asp_recomendantes/** → `Eventos/onLoad`, `metodos/qry_grid_recomendantes` (SQL).
-- **form_agregar_recomendante/** → `Eventos/onBeforeInsert`, `Eventos/onAfterInsert`, `metodos/validar_recomendante(...)`, `metodos/insert_asp_recomendante_after`.
+**Estructura en `scriptcase/apps/`**:
+- **grid_asp_recomendantes/** → `metodos/qry_grid_recomendantes` (SQL).
+- **form_recomendantes/** → `Eventos/onApplicationInit`, `README.md`.
 
 **Variables:** En el código se usan `{id_asp}`, `{nombre}`, `{apellido_p}`, `{correo}`. Si en tu proyecto ScriptCase usa `[id_asp]` u otro formato, cámbialo en la consulta SQL y en los eventos del form.
 
@@ -112,10 +114,10 @@ ORDER BY ar.id_asp_recom
    - **Rótulo** / **Label:** `+ AGREGAR RECOMENDANTE`
    - **Tipo:** **Link** o **Executar aplicação** / **Run application**.
 5. Si es “Ejecutar aplicación”:
-   - **Aplicação:** `form_agregar_recomendante`.
+   - **Aplicação:** `form_recomendantes` (en el repo; documento de referencia).
    - Abrir en **mesma janela** (misma ventana) para que el `sc_redir` del formulario funcione bien.
 6. Si es botón con **onclick** y tu versión lo permite, puedes usar algo como:
-   - `window.location = '{url_form_agregar_recomendante}';`  
+   - `window.location = '{url_form_recomendantes}';`  
    (ajusta según cómo ScriptCase genere la URL del form.)
 7. Guarda.
 
@@ -146,13 +148,13 @@ ORDER BY ar.id_asp_recom
 
 ---
 
-# PASO 3: Crear el formulario `form_agregar_recomendante`
+# PASO 3: Crear el formulario (referencia; en repo: `form_recomendantes`)
 
 ## 3.1 Nueva aplicación
 
 1. **Nueva aplicación**.
 2. Tipo: **Form** / **Formulário**.
-3. Nombre: **`form_agregar_recomendante`**.
+3. Nombre (referencia): **`form_agregar_recomendante`**; en repo se usa **`form_recomendantes`**.
 4. Conexión: **`sce_asp`**.
 5. Crear.
 
@@ -274,7 +276,7 @@ sc_redir('grid_asp_recomendantes');
 
 1. Entra como **aspirante** (con `id_asp` en sesión).
 2. Abre `app_recomendantes` y pulsa **+ AGREGAR RECOMENDANTE**.
-3. Debe abrirse `form_agregar_recomendante`.
+3. Debe abrirse `form_recomendantes`.
 4. Llena nombre, apellido paterno, correo (apellido materno opcional) y guarda.
 5. Debe redirigir al grid y aparecer el nuevo recomendante.
 6. Repite hasta 3. En el cuarto intento debe salir “Ya tienes 3 recomendantes asignados.”
@@ -295,9 +297,9 @@ sc_redir('grid_asp_recomendantes');
 
 - [ ] Grid `app_recomendantes` usa la consulta SQL con `WHERE id_asp_FK = {id_asp}`.
 - [ ] Eliminar está sobre `asp_recomendantes`, clave `id_asp_recom`.
-- [ ] Botón **+ AGREGAR** abre `form_agregar_recomendante`.
+- [ ] Enlace "Recomendantes" abre `form_recomendantes`.
 - [ ] Botón **VOLVER** va a `menu_aspirante`.
-- [ ] Form `form_agregar_recomendante`: tabla `recomendantes`, campos nombre, apellido_p, apellido_m, correo; `login_FK` oculto = `0`.
+- [ ] Form `form_recomendantes`: tabla `recomendantes`, Editable grid, campos nombre, apellido_p, apellido_m, correo; WHERE por `[id_asp]`.
 - [ ] **beforeInsert** con validaciones (obligatorios, email, máximo 3, correo no duplicado).
 - [ ] **afterInsert** con `LAST_INSERT_ID`, `INSERT` en `asp_recomendantes` y `sc_redir` al nombre exacto del grid (ej. `grid_asp_recomendantes`).
 - [ ] Menú aspirante tiene enlace al grid.

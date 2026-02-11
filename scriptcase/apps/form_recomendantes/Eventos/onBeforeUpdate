@@ -1,0 +1,7 @@
+// Bloquear si este recomendante ya tiene usuario creado (cc_edit = 0 o 'N').
+sc_lookup(rs, "SELECT cc_edit FROM recomendantes WHERE id_recom = " . sc_sql_injection({id_recom}));
+$cc = isset({rs[0][0]}) ? trim({rs[0][0]}) : 1;
+if ($cc == 0 || $cc === 'N') {
+    sc_error_message("Este recomendante ya tiene usuario de acceso para subir cartas. No se puede editar.");
+    exit;
+}

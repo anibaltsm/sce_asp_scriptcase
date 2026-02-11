@@ -1,0 +1,6 @@
+// Tras guardar: crear usuario de acceso para el recomendante (sec_asp_users, grupo 7) y enviar correo.
+// Si el recomendante ya tiene login_FK, onBeforeUpdate impide editar; aquí solo se ejecuta si pasó.
+// IMPORTANTE: NO usar sc_redir aquí, corta la ejecución del método.
+error_log("form_recomendantes onAfterUpdate: INICIO id_recom={id_recom} correo={correo}");
+crear_usuario_recomendante({id_recom}, {nombre}, {apellido_p}, {apellido_m}, {correo});
+error_log("form_recomendantes onAfterUpdate: FIN método ejecutado");

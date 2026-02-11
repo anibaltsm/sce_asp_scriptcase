@@ -1,0 +1,10 @@
+// ====================================================================
+// Evento: onLoadRecord - se ejecuta POR CADA FILA
+// Usa sc_field_disabled_record para bloquear SOLO esta fila
+// Documentación: https://www.scriptcase.net/docs/en_us/v9/manual/14-macros/02-macros/
+// ====================================================================
+
+if ({cc_edit} == 0) {
+    // sc_field_disabled_record bloquea campos POR FILA (a diferencia de sc_field_readonly que bloquea toda la columna)
+    sc_field_disabled_record("nombre_=true;apellido_p_=true;apellido_m_=true;correo_=true");
+}

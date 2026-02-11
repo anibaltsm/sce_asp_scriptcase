@@ -1,5 +1,5 @@
 -- =============================================================================
--- Consultas para verificar datos usados en form_asp_requisitos_1 → OnBeforeUpdate
+-- Consultas para verificar datos usados en form de requisitos (OnBeforeUpdate)
 -- Ejecutar: mysql -u root -p sce_asp < consulta_prefijo_generacion_OnBeforeUpdate.sql
 -- O por partes con: mysql -u root -p515t3ma5 sce_asp -e "..."
 -- =============================================================================

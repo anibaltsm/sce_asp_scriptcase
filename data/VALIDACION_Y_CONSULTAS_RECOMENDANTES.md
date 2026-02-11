@@ -2,6 +2,8 @@
 
 Resumen de si las instrucciones que pegaste tienen sentido, qué corregir y las **consultas SQL y PHP ya probadas** contra la BD.
 
+> **Nota:** En el repo la app de recomendantes en uso es **form_recomendantes** (Editable grid). Las apps form_agregar_recomendante y grid_aspirantes_recomendantes fueron eliminadas. Las secciones que citan form_agregar_recomendante siguen como referencia para consultas/validaciones reutilizables.
+
 ---
 
 ## 1. ¿Tiene sentido? **Sí, en conjunto**
@@ -112,7 +114,7 @@ VALUES ({id_asp}, {id_recom}, {num_req});
 
 Usando `sc_lookup`, `sc_exec_sql`, `sc_error_message`, `sc_redir`, como en `add_asp_aspirantes` y App_login.
 
-### 4.1 beforeInsert (form `form_agregar_recomendante`)
+### 4.1 beforeInsert (referencia; en el repo se usa `form_recomendantes` para editar los 3 recomendantes)
 
 Valida obligatorios, email, máximo 3 y correo no repetido.  
 Sustituye `{id_asp}` y los nombres de campo por los que use tu form si son distintos.
@@ -120,7 +122,7 @@ Sustituye `{id_asp}` y los nombres de campo por los que use tu form si son disti
 ```php
 $id_asp = {id_asp};  // sesión aspirante
 
-// Ajustar si tu form usa otros nombres (ej. sc_DataSourceFieldValue('form_agregar_recomendante','nombre'))
+// Ajustar si tu form usa otros nombres (ej. sc_DataSourceFieldValue('form_recomendantes','nombre'))
 $nombre     = trim({nombre});
 $apellido_p = trim({apellido_p});
 $correo     = trim({correo});
@@ -155,7 +157,7 @@ if ($dup > 0) {
 return true;
 ```
 
-### 4.2 afterInsert (form `form_agregar_recomendante`)
+### 4.2 afterInsert (referencia; form_recomendantes solo actualiza, no inserta nuevos)
 
 Obtiene `id_recom` con `LAST_INSERT_ID()`, calcula `num_req` (1, 2, 3), inserta en `asp_recomendantes` y redirige al grid.
 
@@ -190,7 +192,7 @@ Si el grid se llama distinto, cambia `app_recomendantes` por ese nombre en `sc_r
 | Concepto | Nombre |
 |----------|--------|
 | Grid | `app_recomendantes` |
-| Formulario agregar | `form_agregar_recomendante` |
+| Formulario recomendantes | `form_recomendantes` (Editable grid, actualiza los 3) |
 | Menú aspirante | `menu_aspirante` |
 
 ---
@@ -199,7 +201,7 @@ Si el grid se llama distinto, cambia `app_recomendantes` por ese nombre en `sc_r
 
 - [ ] Grid: fuente = consulta SQL anterior; filtro `id_asp_FK = {id_asp}`.
 - [ ] Eliminar en grid sobre `asp_recomendantes`, clave `id_asp_recom`.
-- [ ] Botón “+ AGREGAR” abre `form_agregar_recomendante` (misma ventana o modal, según prefieras).
+- [ ] Botón “+ AGREGAR” abre `form_recomendantes` (editar los 3 recomendantes, según prefieras).
 - [ ] Botón “VOLVER” → `menu_aspirante`.
 - [ ] Form: tabla `recomendantes`; campos nombre, apellido_p, apellido_m, correo; `login_FK` oculto (p. ej. `0`).
 - [ ] beforeInsert: validaciones con las consultas de este documento.

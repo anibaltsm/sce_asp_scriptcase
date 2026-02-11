@@ -1,3 +1,0 @@
-mi_log("onAfterInsert INICIO");
-insert_asp_recomendante_after();
-mi_log("onAfterInsert FIN (tras insert_asp_recomendante_after)");
