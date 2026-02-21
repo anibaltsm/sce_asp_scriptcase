@@ -1,10 +1,20 @@
 // ====================================================================
-// Evento: onLoadRecord - se ejecuta POR CADA FILA
-// Usa sc_field_disabled_record para bloquear SOLO esta fila
-// Documentación: https://www.scriptcase.net/docs/en_us/v9/manual/14-macros/02-macros/
+// Evento: onLoadRecord
+// Scriptcase: v9 | PHP 8.1
+// Documentación: https://www.scriptcase.net/docs/en_us/v9/manual/06-applications/05-form-application/18-form-events/
+// Macros usados: sc_field_disabled_record
+// Fuente: https://www.scriptcase.net/docs/en_us/v9/manual/14-macros/02-macros/
+// ====================================================================
+// Se ejecuta POR CADA FILA. Bloquea campos si cc_edit=0 + oculta botones borrar
 // ====================================================================
 
-if ({cc_edit} == 0) {
-    // sc_field_disabled_record bloquea campos POR FILA (a diferencia de sc_field_readonly que bloquea toda la columna)
+$cc_edit_val = {cc_edit};
+error_log("🔒 form_recomendantes onLoadRecord: id_recom={id_recom} cc_edit=$cc_edit_val");
+
+if ($cc_edit_val == 0 || $cc_edit_val === '0') {
+    error_log("🔒 form_recomendantes onLoadRecord: Bloqueando campos para id_recom={id_recom}");
+    // sc_field_disabled_record bloquea campos POR FILA
     sc_field_disabled_record("nombre_=true;apellido_p_=true;apellido_m_=true;correo_=true");
 }
+
+// JavaScript para ocultar botones borrar: movido a onApplicationInit (una sola vez)

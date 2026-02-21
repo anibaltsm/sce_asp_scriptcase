@@ -1,4 +1,18 @@
-// Bloquear si este recomendante ya tiene usuario creado (cc_edit = 0 o 'N').
+// ====================================================================
+// Evento: OnBeforeUpdate
+// Scriptcase: v9 | PHP 8.1
+// Documentación: https://www.scriptcase.net/docs/en_us/v9/manual/06-applications/05-form-application/18-form-events/
+// Macros usados: sc_confirm, sc_lookup, sc_sql_injection, sc_error_message
+// Fuente: https://www.scriptcase.net/docs/en_us/v9/manual/14-macros/02-macros/
+// ====================================================================
+// NOTA: sc_confirm() NO usa if/return. Si usuario cancela, Scriptcase detiene
+//       la ejecución automáticamente. Solo se llama directamente.
+// ====================================================================
+
+// 1. Advertencia antes de guardar: Cancelar o Guardar (sc_confirm muestra OK/Cancel)
+sc_confirm("ADVERTENCIA\n\nUna vez guardado este recomendante, NO podrá modificar el correo ni otros datos.\n\nPor favor verifique que todos los datos sean correctos.\n\n¿Desea GUARDAR los datos? (Cancelar = No guardar)");
+
+// 2. Bloquear si este recomendante ya tiene usuario creado (cc_edit = 0 o 'N')
 sc_lookup(rs, "SELECT cc_edit FROM recomendantes WHERE id_recom = " . sc_sql_injection({id_recom}));
 $cc = isset({rs[0][0]}) ? trim({rs[0][0]}) : 1;
 if ($cc == 0 || $cc === 'N') {

@@ -1,0 +1,12 @@
+// ---------------------------------------------------------------------------
+// Evento: OnBeforeUpdate
+// Crea la carpeta cartas/[generacion]/ si no existe, antes de que ScriptCase
+// deposite el archivo subido ahí.
+// Configuración del campo archivo en ScriptCase: subdirectorio = cartas/[generacion]
+// (sin subcarpeta de usuario; la carpeta del aspirante se crea en OnAfterUpdate).
+// ---------------------------------------------------------------------------
+
+$cartas = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/cartas/".[generacion]."/";
+if (!is_dir($cartas)) {
+	@mkdir($cartas, 0755, true);
+}

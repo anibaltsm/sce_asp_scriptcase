@@ -9,28 +9,32 @@ Guía completa de todos los archivos y recursos disponibles para implementar el 
 ```
 form_recomendantes/
 ├── Eventos/
-│   ├── onApplicationInit          (Opcional: validar sesión)
-│   ├── onRecord                   ⭐ NUEVO: Deshabilitar campos por fila
-│   ├── OnBeforeUpdate             (Validación backend)
-│   └── onAfterUpdate              (Crear usuario y enviar correo)
-│
+│   ├── onApplicationInit   (Opcional: validar sesión, ocultar Delete)
+│   ├── onLoadRecord        (Deshabilitar campos por fila si cc_edit = 0)
+│   ├── OnBeforeUpdate      (Validación backend)
+│   └── onAfterUpdate       (Crear usuario y enviar correo)
 ├── metodos/
-│   └── crear_usuario_recomendante(...) (Método completo actualizado)
-│
-├── README.md                      (Documentación general actualizada)
-├── INDEX.md                       (Este archivo - Índice general)
-│
-├── CODIGOS_EVENTOS_COPIAR_PEGAR.md ⭐ NUEVO
-│   └── Códigos listos para copiar y pegar en Scriptcase
-│
-├── CONFIGURACION_SCRIPTCASE_PASO_A_PASO.md ⭐ NUEVO
-│   └── Guía completa de configuración en Scriptcase
-│
-├── GUIA_DESHABILITAR_CAMPOS_CON_CC_EDIT.md ⭐ NUEVO
-│   └── Explicación de estrategias para deshabilitar campos
-│
-└── ENLACES_DOCUMENTACION_SCRIPTCASE.md ⭐ NUEVO
-    └── Enlaces directos a la documentación oficial
+│   └── crear_usuario_recomendante(...)
+├── README.md               (Documentación general - en raíz)
+└── docs/
+    ├── INDEX.md            (Este archivo - Índice general)
+    ├── DIAGRAMA_FLUJO.md
+    ├── NUEVAS_FUNCIONALIDADES.md
+    ├── guias/
+    │   ├── CODIGOS_EVENTOS_COPIAR_PEGAR.md
+    │   ├── CONFIGURACION_SCRIPTCASE_PASO_A_PASO.md
+    │   ├── GUIA_DESHABILITAR_CAMPOS_CON_CC_EDIT.md
+    │   ├── GUIA_CONFIRMACION_BOTON.md
+    │   └── GUIA_APLICAR_CAMBIOS.md
+    ├── referencias/
+    │   ├── REFERENCIAS_SCRIPTCASE_V9.md
+    │   └── ENLACES_DOCUMENTACION_SCRIPTCASE.md
+    └── soluciones/
+        ├── PROBLEMA_ONAFTERUPDATE_MULTIPLE.md
+        ├── SOLUCION_ERRORES_PARSE.md
+        ├── SOLUCION_BLOQUEO_POR_FILA.md
+        ├── OCULTAR_BOTONES_DELETE.md
+        └── SOLUCION_DEFINITIVA_BOTONES.md
 ```
 
 ---
@@ -41,10 +45,10 @@ form_recomendantes/
 
 **Leer en este orden:**
 
-1. **README.md** - Visión general del formulario
-2. **CONFIGURACION_SCRIPTCASE_PASO_A_PASO.md** - Paso a paso completo
-3. **CODIGOS_EVENTOS_COPIAR_PEGAR.md** - Copiar y pegar códigos
-4. **GUIA_DESHABILITAR_CAMPOS_CON_CC_EDIT.md** - Entender cómo funciona
+1. **README.md** (raíz) - Visión general del formulario
+2. **guias/CONFIGURACION_SCRIPTCASE_PASO_A_PASO.md** - Paso a paso completo
+3. **guias/CODIGOS_EVENTOS_COPIAR_PEGAR.md** - Copiar y pegar códigos
+4. **guias/GUIA_DESHABILITAR_CAMPOS_CON_CC_EDIT.md** - Entender cómo funciona
 
 ---
 
@@ -52,8 +56,8 @@ form_recomendantes/
 
 **Ir directo a:**
 
-1. **CODIGOS_EVENTOS_COPIAR_PEGAR.md** - Copiar códigos
-2. Sección "Checklist" en **CONFIGURACION_SCRIPTCASE_PASO_A_PASO.md**
+1. **guias/CODIGOS_EVENTOS_COPIAR_PEGAR.md** - Copiar códigos
+2. Sección "Checklist" en **guias/CONFIGURACION_SCRIPTCASE_PASO_A_PASO.md**
 3. Configurar en Scriptcase siguiendo los pasos
 
 ---
@@ -62,8 +66,10 @@ form_recomendantes/
 
 **Consultar:**
 
-1. Sección "Problemas comunes" en **CONFIGURACION_SCRIPTCASE_PASO_A_PASO.md**
-2. **ENLACES_DOCUMENTACION_SCRIPTCASE.md** - Buscar en docs oficial
+1. Sección "Problemas comunes" en **guias/CONFIGURACION_SCRIPTCASE_PASO_A_PASO.md**
+2. **referencias/ENLACES_DOCUMENTACION_SCRIPTCASE.md** - Buscar en docs oficial
+3. Carpeta **soluciones/** - Problemas concretos (onAfterUpdate, parse, botones)
+4. **README.md** (raíz) - Sección "Error 'unexpected identifier'"
 3. **README.md** - Sección "Error 'unexpected identifier'"
 
 ---
@@ -72,9 +78,9 @@ form_recomendantes/
 
 **Leer:**
 
-1. **GUIA_DESHABILITAR_CAMPOS_CON_CC_EDIT.md** - Teoría y estrategias
-2. **ENLACES_DOCUMENTACION_SCRIPTCASE.md** - Documentación oficial
-3. Videos tutoriales (enlaces en ENLACES_DOCUMENTACION_SCRIPTCASE.md)
+1. **guias/GUIA_DESHABILITAR_CAMPOS_CON_CC_EDIT.md** - Teoría y estrategias
+2. **referencias/ENLACES_DOCUMENTACION_SCRIPTCASE.md** - Documentación oficial
+3. Videos tutoriales (enlaces en referencias/ENLACES_DOCUMENTACION_SCRIPTCASE.md)
 
 ---
 
@@ -82,11 +88,11 @@ form_recomendantes/
 
 ### Tarea: Copiar y pegar eventos en Scriptcase
 
-**Archivo:** `CODIGOS_EVENTOS_COPIAR_PEGAR.md`
+**Archivo:** `guias/CODIGOS_EVENTOS_COPIAR_PEGAR.md`
 
 **Contenido:**
 - ✅ onApplicationInit (opcional)
-- ✅ onRecord ⭐ (clave para deshabilitar campos)
+- ✅ onLoadRecord (clave para deshabilitar campos por fila)
 - ✅ OnBeforeUpdate (validación)
 - ✅ onAfterUpdate (crear usuario)
 - ✅ Método crear_usuario_recomendante
@@ -97,7 +103,7 @@ form_recomendantes/
 
 ### Tarea: Configurar Scriptcase paso a paso
 
-**Archivo:** `CONFIGURACION_SCRIPTCASE_PASO_A_PASO.md`
+**Archivo:** `guias/CONFIGURACION_SCRIPTCASE_PASO_A_PASO.md`
 
 **Contenido:**
 - ✅ Requisitos previos
@@ -117,7 +123,7 @@ form_recomendantes/
 
 ### Tarea: Entender cómo funciona cc_edit
 
-**Archivo:** `GUIA_DESHABILITAR_CAMPOS_CON_CC_EDIT.md`
+**Archivo:** `guias/GUIA_DESHABILITAR_CAMPOS_CON_CC_EDIT.md`
 
 **Contenido:**
 - ✅ Concepto de cc_edit
@@ -135,7 +141,7 @@ form_recomendantes/
 
 ### Tarea: Buscar en documentación oficial
 
-**Archivo:** `ENLACES_DOCUMENTACION_SCRIPTCASE.md`
+**Archivo:** `referencias/ENLACES_DOCUMENTACION_SCRIPTCASE.md`
 
 **Contenido:**
 - ✅ Enlaces principales (docs español e inglés)
@@ -168,13 +174,12 @@ form_recomendantes/
 - ✅ `README.md` - Documentación actualizada
 - ✅ `data/alter_recomendantes_cc_edit_recom.sql` - Documentado el cambio
 
-### Archivos nuevos
-- ✅ `Eventos/onRecord` - Deshabilitar campos dinámicamente
-- ✅ `CODIGOS_EVENTOS_COPIAR_PEGAR.md` - Códigos listos
-- ✅ `CONFIGURACION_SCRIPTCASE_PASO_A_PASO.md` - Guía completa
-- ✅ `GUIA_DESHABILITAR_CAMPOS_CON_CC_EDIT.md` - Teoría y estrategias
-- ✅ `ENLACES_DOCUMENTACION_SCRIPTCASE.md` - Enlaces docs oficial
-- ✅ `INDEX.md` - Este archivo
+### Archivos nuevos / documentación
+- ✅ `Eventos/onLoadRecord` - Deshabilitar campos por fila
+- ✅ `docs/guias/` - Códigos, configuración paso a paso, guías
+- ✅ `docs/referencias/` - Scriptcase v9, enlaces oficiales
+- ✅ `docs/soluciones/` - Problemas resueltos
+- ✅ `docs/INDEX.md` - Este archivo
 
 ---
 
@@ -182,10 +187,10 @@ form_recomendantes/
 
 Marca al completar cada paso:
 
-- [ ] 1. **Leer** `CODIGOS_EVENTOS_COPIAR_PEGAR.md`
+- [ ] 1. **Leer** `guias/CODIGOS_EVENTOS_COPIAR_PEGAR.md`
 - [ ] 2. **Abrir** Scriptcase → form_recomendantes
 - [ ] 3. **Agregar** campo `cc_edit` como Hidden en Fields
-- [ ] 4. **Copiar** código de `onRecord` y pegar en Scriptcase
+- [ ] 4. **Copiar** código de `onLoadRecord` y pegar en Scriptcase
 - [ ] 5. **Copiar** código de `OnBeforeUpdate` y pegar
 - [ ] 6. **Copiar** código de `onAfterUpdate` y pegar
 - [ ] 7. **Verificar** método `crear_usuario_recomendante`
@@ -201,8 +206,8 @@ Marca al completar cada paso:
 
 ### Nivel 1: Básico (Solo copiar y pegar)
 **Archivos necesarios:**
-- `CODIGOS_EVENTOS_COPIAR_PEGAR.md`
-- Checklist en `CONFIGURACION_SCRIPTCASE_PASO_A_PASO.md`
+- `guias/CODIGOS_EVENTOS_COPIAR_PEGAR.md`
+- Checklist en `guias/CONFIGURACION_SCRIPTCASE_PASO_A_PASO.md`
 
 **Tiempo estimado:** 30-45 minutos
 
@@ -210,9 +215,9 @@ Marca al completar cada paso:
 
 ### Nivel 2: Intermedio (Entender y personalizar)
 **Archivos necesarios:**
-- `CODIGOS_EVENTOS_COPIAR_PEGAR.md`
-- `CONFIGURACION_SCRIPTCASE_PASO_A_PASO.md`
-- `GUIA_DESHABILITAR_CAMPOS_CON_CC_EDIT.md`
+- `guias/CODIGOS_EVENTOS_COPIAR_PEGAR.md`
+- `guias/CONFIGURACION_SCRIPTCASE_PASO_A_PASO.md`
+- `guias/GUIA_DESHABILITAR_CAMPOS_CON_CC_EDIT.md`
 
 **Tiempo estimado:** 1-2 horas
 
@@ -221,7 +226,7 @@ Marca al completar cada paso:
 ### Nivel 3: Avanzado (Dominar y extender)
 **Archivos necesarios:**
 - Todos los anteriores
-- `ENLACES_DOCUMENTACION_SCRIPTCASE.md`
+- `referencias/ENLACES_DOCUMENTACION_SCRIPTCASE.md`
 - Documentación oficial de Scriptcase
 
 **Tiempo estimado:** 2-4 horas (incluye estudio)
@@ -232,9 +237,9 @@ Marca al completar cada paso:
 
 ### Si tienes problemas:
 
-1. **Buscar** en "Problemas comunes" de `CONFIGURACION_SCRIPTCASE_PASO_A_PASO.md`
-2. **Consultar** `ENLACES_DOCUMENTACION_SCRIPTCASE.md` y buscar en docs oficial
-3. **Revisar** el código de eventos en `CODIGOS_EVENTOS_COPIAR_PEGAR.md`
+1. **Buscar** en "Problemas comunes" de `guias/CONFIGURACION_SCRIPTCASE_PASO_A_PASO.md`
+2. **Consultar** carpeta `soluciones/` y `referencias/ENLACES_DOCUMENTACION_SCRIPTCASE.md`
+3. **Revisar** el código de eventos en `guias/CODIGOS_EVENTOS_COPIAR_PEGAR.md`
 4. **Preguntar** en el foro de Scriptcase
 
 ### Recursos de ayuda:
@@ -258,7 +263,7 @@ onApplicationInit: Valida [id_asp]
     ↓
 WHERE clause: Filtra 3 recomendantes del aspirante
     ↓
-onRecord (por cada fila):
+onLoadRecord (por cada fila):
     - Si cc_edit = 0 → Deshabilitar campos (gris)
     - Si cc_edit = 1 → Campos editables (blanco)
     ↓
@@ -279,7 +284,7 @@ onAfterUpdate:
     - Envía correo con datos de acceso
     ↓
 Próximo cargue:
-    - onRecord detecta cc_edit = 0
+    - onLoadRecord detecta cc_edit = 0
     - Campos deshabilitados (gris)
     - No se puede editar más
 ```

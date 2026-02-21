@@ -1,0 +1,14 @@
+// ====================================================================
+// Evento: onLoad
+// Scriptcase: v9 | PHP 8.1
+// Documentación: https://www.scriptcase.net/docs/en_us/v9/manual/06-applications/05-form-application/18-form-events/
+// Macros usados: (ninguno directo; usa $_SESSION)
+// Fuente: https://www.scriptcase.net/docs/en_us/v9/manual/14-macros/02-macros/
+// ====================================================================
+// Función: Mostrar mensaje de éxito tras guardado
+// ====================================================================
+
+// Limpiar bandera de guardado exitoso (evita popup "Output")
+if (isset($_SESSION['form_recomendantes_guardado_exitoso']) && $_SESSION['form_recomendantes_guardado_exitoso']) {
+    unset($_SESSION['form_recomendantes_guardado_exitoso']);
+}

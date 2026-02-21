@@ -1,0 +1,17 @@
+// ====================================================================
+// Evento: onBeforeUpdateAll
+// Scriptcase: v9 | PHP 8.1 | Multiple Records
+// Documentación: https://www.scriptcase.net/docs/en_us/v9/manual/06-applications/05-form-application/18-form-events/17-onBeforeUpdateAll
+// ====================================================================
+// IMPORTANTE: En formularios Multiple Records, OnBeforeUpdate NO se ejecuta.
+// Este evento (onBeforeUpdateAll) corre UNA VEZ al hacer clic en Guardar,
+// después de onValidate y ANTES de ejecutar los SQL de actualización.
+// Usar aquí sc_confirm para la advertencia con Cancelar/Guardar.
+// ====================================================================
+
+error_log("⚠️ form_recomendantes onBeforeUpdateAll: INICIO");
+
+// Advertencia: Cancelar o Guardar (sc_confirm muestra diálogo nativo OK/Cancel)
+sc_confirm("ADVERTENCIA\n\nUna vez guardado este recomendante, NO podrá modificar el correo ni otros datos.\n\nPor favor verifique que todos los datos sean correctos.\n\n¿Desea GUARDAR los datos? (Cancelar = No guardar)");
+
+error_log("⚠️ form_recomendantes onBeforeUpdateAll: sc_confirm mostrado, usuario aceptó");

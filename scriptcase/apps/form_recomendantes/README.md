@@ -7,7 +7,8 @@ Formulario **Editable grid** (Multiple Records) para que el aspirante actualice 
 - **Campo de control:** `cc_edit` (TINYINT(1), default `1`). `1` = editable; `0` = ya se creó usuario para cartas, no editar. Hay que añadirlo con el script en `data/alter_recomendantes_cc_edit_recom.sql`.
 - **WHERE (SQL Settings):** solo los recomendantes del aspirante logueado vía `asp_recomendantes` y `[id_asp]`.
 
-En este repo solo se mantiene **form_recomendantes** para recomendantes. Las apps **form_agregar_recomendante** y **grid_aspirantes_recomendantes** fueron eliminadas; la edición de los 3 recomendantes se hace desde este form.
+En este repo solo se mantiene **form_recomendantes** para recomendantes. Más documentación (guías, referencias, soluciones a problemas) está en la carpeta **docs/**; ver **docs/INDEX.md** para el índice.
+ Las apps **form_agregar_recomendante** y **grid_aspirantes_recomendantes** fueron eliminadas; la edición de los 3 recomendantes se hace desde este form.
 
 ---
 
@@ -62,19 +63,24 @@ Ver `data/alter_recomendantes_cc_edit_recom.sql`. Si la tabla ya tiene datos, lo
 
 ---
 
-## Botón Guardar: crear usuario y enviar correo
+## Botón Guardar: confirmación, crear usuario y enviar correos
 
 Al hacer clic en **Guardar** (por fila o “Guardar seleccionados”):
 
-1. **OnBeforeUpdate:** Si **cc_edit = 0**, se muestra error y no se permite guardar (ese recomendante ya tiene usuario creado).
-2. **onAfterUpdate:** Se llama al método **crear_usuario_recomendante**, que:
+1. **onValidate:** Muestra confirmación al usuario con `sc_confirm()`: "⚠️ IMPORTANTE: Una vez guardado este recomendante, NO podrá modificar el correo ni otros datos. ¿Desea continuar?" Si cancela, se aborta el guardado automáticamente.
+2. **OnBeforeUpdate:** Si **cc_edit = 0**, se muestra error y no se permite guardar (ese recomendante ya tiene usuario creado).
+3. **onAfterUpdate:** Se llama al método **crear_usuario_recomendante**, que:
    - Comprueba **cc_edit**; si es `0`, no hace nada.
    - Crea el usuario en **sec_asp_users** (login = correo, contraseña aleatoria 8 caracteres, name/apat/amat/email, active='Y').
    - Inserta en **sec_asp_users_groups** con **group_id = 7** (recomendantes que suben cartas).
    - Actualiza **recomendantes**: `login_FK` = login creado y **cc_edit = 0** (bloquea futuras ediciones).
-   - Envía un correo a **anibal.sanchez@inecol.mx** con los datos de acceso (usuario y contraseña).
+   - **Envía DOS correos:**
+     - **Al administrador** (anibal.sanchez@inecol.mx) con los datos del recomendante y su contraseña.
+     - **Al recomendante** (su correo) con sus datos de acceso (usuario y contraseña).
+   - Marca flag en sesión para recarga: `$_SESSION['form_recomendantes_need_reload'] = true`
+4. **onLoad:** Detecta el flag de sesión y recarga automáticamente el formulario con JavaScript para ver los campos bloqueados inmediatamente (sin necesidad de recargar manualmente). Usa `sessionStorage` para evitar bucles infinitos.
 
-El envío de correo usa la misma configuración SMTP que en **app_form_add_users** (Gmail). Para cambiar el destinatario, editar en el método `crear_usuario_recomendante` la variable `$mail_to`.
+El envío de correo usa la misma configuración SMTP que en **app_form_add_users** (Gmail). Para cambiar los destinatarios, editar en el método `crear_usuario_recomendante` las variables `$mail_to_admin` y `$mail_to_recom`.
 
 ---
 
@@ -84,10 +90,20 @@ El envío de correo usa la misma configuración SMTP que en **app_form_add_users
 form_recomendantes/
 ├── Eventos/
 │   ├── onApplicationInit   (vacío; código opcional en README)
-│   ├── OnBeforeUpdate     (bloquear si cc_edit_recom = 'N')
-│   └── onAfterUpdate      (llamar crear_usuario_recomendante)
+│   ├── onValidate         (confirmación antes de guardar con sc_confirm)
+│   ├── OnBeforeUpdate     (bloquear si cc_edit = 0)
+│   ├── onAfterUpdate      (crear usuario + marcar flag de recarga)
+│   ├── onLoad             (detectar flag y recargar automáticamente)
+│   └── onLoadRecord       (bloquear campos por fila si cc_edit = 0)
 ├── metodos/
 │   └── crear_usuario_recomendante($id_recom, $nombre, $apellido_p, $apellido_m, $correo)
+├── docs/
+│   ├── INDEX.md           (índice de toda la documentación)
+│   ├── DIAGRAMA_FLUJO.md
+│   ├── NUEVAS_FUNCIONALIDADES.md
+│   ├── guias/             (configuración paso a paso, códigos, confirmación, cc_edit)
+│   ├── referencias/       (Scriptcase v9, enlaces oficiales)
+│   └── soluciones/        (problemas resueltos: onAfterUpdate, parse, botones, etc.)
 ├── fix_id_recom_parse_error.sh
 └── README.md
 ```

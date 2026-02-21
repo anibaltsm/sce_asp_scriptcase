@@ -86,20 +86,23 @@ sc_exec_sql("UPDATE tabla SET campo = valor WHERE id = X");
 
 ---
 
-### 5. Mensajes (Message Macros)
+### 5. Mensajes y confirmación (Message / Confirmation Macros)
 
-**Usar para:** Mostrar mensajes de error, éxito, info, warning
+**Usar para:** Mostrar mensajes de error, éxito, info, warning y diálogos de confirmación
 
 ```php
 sc_error_message("Texto del error");
-sc_message("Texto", "tipo"); // tipo: info, success, warning, error
+sc_confirm("ADVERTENCIA\n\n¿Desea guardar?");  // Muestra OK/Cancel; Cancel = no continúa
 ```
 
-**Documentación:**
-- 🇬🇧 https://www.scriptcase.net/docs/en_us/v9/manual/05-programming/01-macros/06-messages/
-- 🇪🇸 https://www.scriptcase.net/docs/es_es/v9/manual/05-programming/01-macros/06-messages/
+**sc_confirm:** Diálogo nativo con "Aceptar" (continúa) y "Cancelar" (detiene). NO usar `if (!sc_confirm())`.
 
-**Buscar en docs:** "Message Macros", "sc_error_message", "sc_message"
+**Documentación:**
+- 🇬🇧 Macros v9: https://www.scriptcase.net/docs/en_us/v9/manual/14-macros/02-macros/
+- 🇬🇧 Message Macros: https://www.scriptcase.net/docs/en_us/v9/manual/05-programming/01-macros/06-messages/
+- 🇪🇸 Macros: https://www.scriptcase.net/docs/es_es/v9/manual/14-macros/02-macros/
+
+**Buscar en docs:** "sc_confirm", "sc_error_message", "Message Macros"
 
 ---
 
@@ -232,6 +235,18 @@ $_SESSION['variable'];
 🇬🇧 https://www.scriptcase.net/docs/en_us/v9/manual/08-form/01-settings/05-security-settings/
 🇪🇸 https://www.scriptcase.net/docs/es_es/v9/manual/08-form/01-settings/05-security-settings/
 
+### 5. Validación de correo (PHP nativo)
+**Para:** Validar formato de email en onValidate
+
+```php
+if (!filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+    sc_error_message("El correo no es válido.");
+    return;
+}
+```
+
+**Documentación PHP:** https://www.php.net/manual/en/filter.filters.validate.php
+
 ---
 
 ## 🔍 Cómo buscar en la documentación
@@ -293,7 +308,7 @@ Cuando busques ayuda en la documentación o foro, usa estos términos:
 | Consulta SQL | SQL query | `sc_lookup`, `Database Macros` |
 | Mensaje de error | Error message | `sc_error_message`, `Message Macros` |
 | Enviar correo | Send email | `sc_mail_send`, `Mail Macros` |
-| Validación | Validation | `onValidate`, `Validation Methods` |
+| Validación | Validation | `onValidate`, `filter_var`, `FILTER_VALIDATE_EMAIL` |
 | Redirigir | Redirect | `sc_redir`, `Redirect Macros` |
 | Variable global | Global variable | `Global Variables`, `[]` |
 | Botón guardar | Save button | `sc_btn_save_display`, `Button Macros` |

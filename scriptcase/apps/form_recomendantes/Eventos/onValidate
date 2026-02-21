@@ -1,0 +1,62 @@
+// ====================================================================
+// Evento: onValidate
+// Scriptcase: v9 | PHP 8.1
+// Documentación: https://www.scriptcase.net/docs/en_us/v9/manual/06-applications/05-form-application/18-form-events/08-onValidate
+// Macros usados: sc_error_message, sc_lookup, sc_sql_injection
+// Fuente: https://www.scriptcase.net/docs/en_us/v9/manual/14-macros/02-macros/
+// ====================================================================
+// NOTA: Se ejecuta al enviar el formulario (Add/Change/Delete). Si sc_error_message()
+//       se ejecuta, se cancela el envío del formulario.
+// ====================================================================
+
+error_log("🔔 form_recomendantes onValidate: INICIO - Validando campos obligatorios");
+
+// Validar que TODOS los campos estén llenos
+$nombre     = trim({nombre});
+$apellido_p = trim({apellido_p});
+$apellido_m = trim({apellido_m});
+$correo     = trim({correo});
+
+// Solo validar si es un UPDATE (tiene id_recom) - evitar validación en cargas vacías
+$id_recom_val = trim({id_recom});
+if (empty($id_recom_val)) {
+    error_log("🔔 form_recomendantes onValidate: SKIP - id_recom vacío (carga de página)");
+    return;
+}
+
+// Validar campos obligatorios
+if (empty($nombre)) {
+    sc_error_message("El campo Nombre es obligatorio. Por favor complete todos los datos del recomendante.");
+    return;
+}
+
+if (empty($apellido_p)) {
+    sc_error_message("El campo Apellido Paterno es obligatorio. Por favor complete todos los datos del recomendante.");
+    return;
+}
+
+// Apellido materno opcional (extranjeros u otros pueden no tenerlo)
+
+if (empty($correo)) {
+    sc_error_message("El campo Correo es obligatorio. Por favor complete todos los datos del recomendante. Una vez guardado no podrá modificarse.");
+    return;
+}
+
+// Validar formato de correo electrónico
+if (!filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+    sc_error_message("El correo electrónico ingresado no es válido. Por favor ingrese un correo con formato correcto (ejemplo: nombre@dominio.com).");
+    return;
+}
+
+// Nota: No validamos correo duplicado. Si ya existe en sec_asp_users, crear_usuario_recomendante
+// vincula (login_FK, cc_edit=0) y no crea otra cuenta. El recomendante verá todos los casos
+// vía asp_recomendantes WHERE id_recom_FK = [id_recom].
+
+// Bloquear si ya tiene usuario creado (cc_edit=0). OnBeforeUpdate no corre en Editable Grid.
+$cc_edit_val = trim({cc_edit});
+if ($cc_edit_val == 0 || $cc_edit_val === '0' || $cc_edit_val === 'N') {
+    sc_error_message("Este recomendante ya tiene usuario de acceso para subir cartas. No se puede editar.");
+    return;
+}
+
+error_log("🔔 form_recomendantes onValidate: FIN - Todos los campos válidos");

@@ -1,6 +1,44 @@
-// Tras guardar: crear usuario de acceso para el recomendante (sec_asp_users, grupo 7) y enviar correo.
-// Si el recomendante ya tiene login_FK, onBeforeUpdate impide editar; aquí solo se ejecuta si pasó.
-// IMPORTANTE: NO usar sc_redir aquí, corta la ejecución del método.
-error_log("form_recomendantes onAfterUpdate: INICIO id_recom={id_recom} correo={correo}");
-crear_usuario_recomendante({id_recom}, {nombre}, {apellido_p}, {apellido_m}, {correo});
-error_log("form_recomendantes onAfterUpdate: FIN método ejecutado");
+// ====================================================================
+// Evento: onAfterUpdate
+// Scriptcase: v9 | PHP 8.1
+// Documentación: https://www.scriptcase.net/docs/en_us/v9/manual/06-applications/05-form-application/18-form-events/
+// Macros usados: (ninguno directo; llama al método crear_usuario_recomendante)
+// Fuente: https://www.scriptcase.net/docs/en_us/v9/manual/14-macros/02-macros/
+// ====================================================================
+// NOTA: En formularios "Multiple Records", este evento puede ejecutarse al
+//       cargar la página con datos vacíos. Por eso validamos id_recom y correo.
+// ====================================================================
+
+// VALIDACIÓN CRÍTICA: Solo ejecutar si hay id_recom y correo válidos
+$id_recom_val = trim({id_recom});
+$correo_val = trim({correo});
+
+error_log("💾 form_recomendantes onAfterUpdate: INICIO id_recom=$id_recom_val correo=$correo_val");
+
+// Si no hay id_recom o está vacío, NO hacer nada (es una carga, no un guardado)
+if (empty($id_recom_val) || $id_recom_val === '' || $id_recom_val === '0' || $id_recom_val === 0) {
+    error_log("💾 form_recomendantes onAfterUpdate: SKIP - id_recom vacío (no es un guardado real)");
+    return;
+}
+
+// Si no hay correo, NO crear usuario (pero sí es un guardado)
+if (empty($correo_val) || $correo_val === '') {
+    error_log("💾 form_recomendantes onAfterUpdate: SKIP - correo vacío, no se crea usuario");
+    return;
+}
+
+// 1. Crear usuario, actualizar recomendantes (login_FK, cc_edit) y enviar correos
+crear_usuario_recomendante($id_recom_val, {nombre}, {apellido_p}, {apellido_m}, $correo_val);
+
+error_log("💾 form_recomendantes onAfterUpdate: Método crear_usuario ejecutado");
+
+// 2. Marcar flag para mensaje de éxito (opcional)
+$_SESSION['form_recomendantes_guardado_exitoso'] = true;
+
+// NO hacer sc_redir aquí: si se redirige antes de que ScriptCase haga commit de la
+// transacción del formulario, el UPDATE a recomendantes (login_FK, cc_edit) puede
+// perderse (rollback). El usuario y el correo sí se crean, pero la fila en
+// recomendantes queda sin login_FK y cc_edit=1. Dejar que el form termine y muestre
+// la pantalla; al recargar manualmente o volver al grid se verá cc_edit=0.
+
+error_log("💾 form_recomendantes onAfterUpdate: FIN");

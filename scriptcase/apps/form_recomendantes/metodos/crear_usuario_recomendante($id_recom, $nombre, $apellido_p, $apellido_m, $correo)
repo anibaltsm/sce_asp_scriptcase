@@ -1,42 +1,165 @@
-// Crear usuario en sec_asp_users para el recomendante, asignar grupo 7 y enviar correo con datos de acceso.
-// Llamar desde onAfterUpdate: crear_usuario_recomendante({id_recom}, {nombre}, {apellido_p}, {apellido_m}, {correo});
-// Destino del correo (por ahora): anibal.sanchez@inecol.mx
-// Campo de control: cc_edit = 0/'N' tras crear usuario (bloquea nueva edición).
+// ====================================================================
+// Método: crear_usuario_recomendante
+// Scriptcase: v9 | PHP 8.1
+// Macros usados: sc_lookup, sc_sql_injection, sc_exec_sql, sc_mail_send, sc_error_message
+// ====================================================================
+// Llamar desde: onAfterUpdate
+// Parámetros: {id_recom}, {nombre}, {apellido_p}, {apellido_m}, {correo}
+//
+// Flujo:
+//   1. id_recom vacío → return (carga de página)
+//   2. correo vacío  → error_message + return
+//   3. Duplicado (mismo correo en otro id_recom) → MERGE + correo notificación + return
+//   4. cc_edit = 0 (ya tiene usuario) → correo notificación + return
+//   5. Login ya existe en sec_asp_users → asignar grupo + correo notificación + return
+//   6. NUEVO: crear usuario, enviar correo bienvenida (con contraseña + activación)
+//
+// Correo bienvenida  : se envía UNA sola vez, la primera vez que se crea el usuario.
+// Correo notificación: se envía cada vez que un aspirante lo agrega y ya tiene usuario.
+//   → Asunto distinto, sin contraseña ni enlace de activación, solo: quién lo agregó + qué subir.
+// ====================================================================
 
 error_log("crear_usuario_recomendante: INICIO id_recom=$id_recom correo=$correo");
 
-$nombre     = trim($nombre);
-$apellido_p = trim($apellido_p);
-$apellido_m = trim($apellido_m);
-$correo     = trim($correo);
+$id_recom_val = trim((string)$id_recom);
+$nombre       = trim($nombre);
+$apellido_p   = trim($apellido_p);
+$apellido_m   = trim($apellido_m);
+$correo       = trim($correo);
 
+// 1. Carga de página (no guardado real)
+if (empty($id_recom_val) || $id_recom_val === '' || $id_recom_val === '0') {
+    error_log("crear_usuario_recomendante: SKIP - id_recom vacío");
+    return;
+}
+
+// 2. Correo obligatorio
 if ($correo === '') {
     error_log("crear_usuario_recomendante: ERROR correo vacío");
     sc_error_message("El correo del recomendante es obligatorio para crear el usuario de acceso.");
     return;
 }
 
-// No crear si ya se marcó como no editable (cc_edit = 0 o 'N')
+// Configuración de correo (se usa tanto para bienvenida como para notificación)
+$mail_smtp_server    = 'smtp.office365.com';
+$mail_smtp_user      = 'sce.posgrado@inecol.mx';
+$mail_smtp_pass      = '5C3.P0sgr4d0';
+$mail_from           = 'sce.posgrado@inecol.mx';
+$mail_format         = 'H';
+$mail_tp_copies      = 'CCC';
+$mail_port           = '587';
+$mail_tp_connection  = 'T';
+$mail_cc_admin       = 'anibal.sanchez@inecol.mx';
+$url_login           = 'http://posgrados.inecol.mx/sce_asp/App_login/';
+
+// -----------------------------------------------------------------------
+// Función de contexto: obtener nombre del aspirante y leyenda del documento
+// desde la relación recién guardada en asp_recomendantes (la última para este id_recom).
+// Se usa en ambos tipos de correo.
+// -----------------------------------------------------------------------
+$_nom_recom = htmlspecialchars(trim($nombre . ' ' . $apellido_p . ' ' . $apellido_m));
+
+sc_lookup(rs_ctx, "SELECT ar.id_asp_FK, ar.num_req FROM asp_recomendantes ar WHERE ar.id_recom_FK = " . sc_sql_injection($id_recom) . " ORDER BY ar.id_asp_recom DESC LIMIT 1");
+$_ctx_nom_asp = '';
+$_ctx_leyenda = '';
+if (isset({rs_ctx[0][0]}) && isset({rs_ctx[0][1]})) {
+    $_ctx_id_asp  = trim({rs_ctx[0][0]});
+    $_ctx_num_req = trim({rs_ctx[0][1]});
+    sc_lookup(rs_ctx_asp, "SELECT nombres, ap_pat, ap_mat FROM aspirantes WHERE id_asp = " . sc_sql_injection($_ctx_id_asp));
+    if (isset({rs_ctx_asp[0][0]})) {
+        $_ctx_nom_asp = htmlspecialchars(trim(trim({rs_ctx_asp[0][0]}) . ' ' . trim({rs_ctx_asp[0][1]}) . ' ' . trim({rs_ctx_asp[0][2]})));
+    }
+    sc_lookup(rs_ctx_ley, "SELECT leyenda FROM sce.list_req_gral WHERE num_requisito = " . sc_sql_injection($_ctx_num_req) . " AND cc_carta = 1 LIMIT 1");
+    if (isset({rs_ctx_ley[0][0]})) {
+        $_ctx_leyenda = htmlspecialchars(trim({rs_ctx_ley[0][0]}));
+    }
+}
+
+// Cuerpo del correo de NOTIFICACIÓN (ya tiene usuario; sin contraseña ni activación)
+$msg_notificacion = '
+<table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; font-family: \'Segoe UI\', Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #2c2c2c;">
+  <tr><td style="background: #1e4d7b; padding: 18px 24px; text-align: center;"><span style="color: #fff; font-size: 16px; font-weight: 600;">Instituto de Ecología A.C.</span><br><span style="color: #b8d4e8; font-size: 12px;">Subsistema de Aspirantes al Posgrado</span></td></tr>
+  <tr><td style="padding: 28px 24px; border: 1px solid #e0e4e8; border-top: none; background: #fff;">
+    <p style="margin: 0 0 1.25em;">Estimado(a) <strong>' . $_nom_recom . '</strong>:</p>
+    <p style="margin: 0 0 1.25em;">Le informamos que el/la aspirante <strong>' . $_ctx_nom_asp . '</strong> lo/la ha registrado como recomendante en el proceso de admisión al posgrado del INECOL y requiere que usted cargue el siguiente documento: <strong>' . $_ctx_leyenda . '</strong>.</p>
+    <p style="margin: 0 0 0.75em;">Puede ingresar al sistema con su usuario y contraseña ya registrados:</p>
+    <p style="margin: 0 0 1.25em;"><a href="' . $url_login . '" style="display: inline-block; padding: 10px 18px; background: #1e4d7b; color: #fff !important; text-decoration: none; border-radius: 4px; font-weight: 600;">Acceder al sistema</a></p>
+  </td></tr>
+  <tr><td style="padding: 16px 24px; background: #f5f7f9; border: 1px solid #e0e4e8; border-top: 1px solid #dee2e6; font-size: 11px; color: #666;">Esta dirección de correo electrónico no recibe respuestas.</td></tr>
+  <tr><td style="padding: 14px 24px; background: #fff; border: 1px solid #e0e4e8; border-top: none; font-size: 12px; color: #444;">Atentamente,<br><strong>Instituto de Ecología A.C.</strong><br>Sistema de Control Escolar – Posgrado</td></tr>
+</table>';
+$asunto_notificacion = 'INECOL. Un aspirante lo ha agregado como recomendante';
+
+// -----------------------------------------------------------------------
+// 3. MERGE: duplicado (mismo correo ya existe en otro id_recom de recomendantes)
+// -----------------------------------------------------------------------
+sc_lookup(rs_dup, "SELECT id_recom FROM recomendantes WHERE correo = " . sc_sql_injection($correo) . " AND id_recom != " . sc_sql_injection($id_recom) . " ORDER BY id_recom ASC LIMIT 1");
+if (isset({rs_dup[0][0]})) {
+    $id_recom_canonico = (int){rs_dup[0][0]};
+    error_log("crear_usuario_recomendante: MERGE id_recom=$id_recom → canonico=$id_recom_canonico");
+    // La búsqueda de contexto (rs_ctx) se hizo antes del UPDATE, por eso el id_recom_FK aún es $id_recom
+    sc_exec_sql("UPDATE asp_recomendantes SET id_recom_FK = $id_recom_canonico WHERE id_recom_FK = " . sc_sql_injection($id_recom));
+    sc_exec_sql("DELETE FROM recomendantes WHERE id_recom = " . sc_sql_injection($id_recom));
+    sc_commit_trans();
+    error_log("crear_usuario_recomendante: MERGE OK");
+    // Notificar: el recomendante canónico ya tiene usuario; solo informarle del nuevo aspirante+doc
+    try {
+        @sc_mail_send($mail_smtp_server, $mail_smtp_user, $mail_smtp_pass, $mail_from,
+            $correo, $asunto_notificacion, $msg_notificacion, $mail_format, $mail_cc_admin, $mail_tp_copies,
+            $mail_port, $mail_tp_connection);
+        error_log("crear_usuario_recomendante: Correo notificacion (MERGE) enviado a $correo");
+    } catch (Exception $e) {
+        error_log("crear_usuario_recomendante: Error correo notificacion (MERGE): " . $e->getMessage());
+    }
+    return;
+}
+
+// -----------------------------------------------------------------------
+// 4. cc_edit = 0: ya tiene usuario creado (guardada previa lo procesó)
+// -----------------------------------------------------------------------
 sc_lookup(rs_cc, "SELECT cc_edit FROM recomendantes WHERE id_recom = " . sc_sql_injection($id_recom));
 $cc_edit = isset({rs_cc[0][0]}) ? trim({rs_cc[0][0]}) : 1;
 error_log("crear_usuario_recomendante: cc_edit=$cc_edit para id_recom=$id_recom");
 if ($cc_edit == 0 || $cc_edit === 'N') {
-    error_log("crear_usuario_recomendante: SALIDA ya tiene usuario (cc_edit=0)");
-    return; // Ya tiene usuario creado, no volver a crear
+    error_log("crear_usuario_recomendante: ya tiene usuario (cc_edit=0), enviando notificación");
+    try {
+        @sc_mail_send($mail_smtp_server, $mail_smtp_user, $mail_smtp_pass, $mail_from,
+            $correo, $asunto_notificacion, $msg_notificacion, $mail_format, $mail_cc_admin, $mail_tp_copies,
+            $mail_port, $mail_tp_connection);
+        error_log("crear_usuario_recomendante: Correo notificacion (cc_edit=0) enviado a $correo");
+    } catch (Exception $e) {
+        error_log("crear_usuario_recomendante: Error correo notificacion (cc_edit=0): " . $e->getMessage());
+    }
+    return;
 }
 
 $login = $correo;
 
-// ¿Ya existe el login en sec_asp_users? (p. ej. mismo correo usado en otro recomendante)
+// -----------------------------------------------------------------------
+// 5. Login ya existe en sec_asp_users (ej. fue creado como aspirante u otro rol)
+// -----------------------------------------------------------------------
 sc_lookup(rs_usr, "SELECT login FROM sec_asp_users WHERE login = " . sc_sql_injection($login));
 if (isset({rs_usr[0][0]})) {
-    // Solo asignar a grupo 7, vincular recomendante y bloquear edición
     $sql_grp = "INSERT IGNORE INTO sec_asp_users_groups (login, group_id) VALUES (" . sc_sql_injection($login) . ", 7)";
     sc_exec_sql($sql_grp);
     $upd = "UPDATE recomendantes SET login_FK = " . sc_sql_injection($login) . ", cc_edit = 0 WHERE id_recom = " . sc_sql_injection($id_recom);
     sc_exec_sql($upd);
+    sc_commit_trans();
+    error_log("crear_usuario_recomendante: login ya existe, asignado grupo 7 y cc_edit=0; enviando notificación");
+    try {
+        @sc_mail_send($mail_smtp_server, $mail_smtp_user, $mail_smtp_pass, $mail_from,
+            $correo, $asunto_notificacion, $msg_notificacion, $mail_format, $mail_cc_admin, $mail_tp_copies,
+            $mail_port, $mail_tp_connection);
+        error_log("crear_usuario_recomendante: Correo notificacion (login existente) enviado a $correo");
+    } catch (Exception $e) {
+        error_log("crear_usuario_recomendante: Error correo notificacion (login existente): " . $e->getMessage());
+    }
     return;
 }
+
+// -----------------------------------------------------------------------
+// 6. NUEVO USUARIO: crear en sec_asp_users, enviar correo de bienvenida
+// -----------------------------------------------------------------------
 
 // Generar contraseña aleatoria (8 caracteres)
 $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -45,7 +168,6 @@ for ($i = 0; $i < 8; $i++) {
     $pswd .= $chars[mt_rand(0, strlen($chars) - 1)];
 }
 
-// INSERT sec_asp_users (campos mínimos como en el sistema)
 $ins_user = "INSERT INTO sec_asp_users (login, pswd, name, apat, amat, email, active, priv_admin, fecha_alta) VALUES ("
     . sc_sql_injection($login) . ", "
     . sc_sql_injection($pswd) . ", "
@@ -53,43 +175,63 @@ $ins_user = "INSERT INTO sec_asp_users (login, pswd, name, apat, amat, email, ac
     . sc_sql_injection($apellido_p) . ", "
     . sc_sql_injection($apellido_m) . ", "
     . sc_sql_injection($correo) . ", "
-    . "'Y', 'N', NOW())";
+    . "'N', 'N', NOW())";
 sc_exec_sql($ins_user);
 
-// INSERT sec_asp_users_groups → group_id = 7 (recomendantes que suben cartas)
 $ins_grp = "INSERT INTO sec_asp_users_groups (login, group_id) VALUES (" . sc_sql_injection($login) . ", 7)";
 sc_exec_sql($ins_grp);
 
-// Vincular recomendante con el usuario y marcar como no editable (cc_edit = 0)
 $upd_recom = "UPDATE recomendantes SET login_FK = " . sc_sql_injection($login) . ", cc_edit = 0 WHERE id_recom = " . sc_sql_injection($id_recom);
 sc_exec_sql($upd_recom);
+error_log("crear_usuario_recomendante: nuevo usuario creado (login_FK, cc_edit=0) id_recom=$id_recom");
+sc_commit_trans();
 
-// Enviar correo con datos de acceso (por ahora a anibal.sanchez@inecol.mx)
-$mail_to = 'anibal.sanchez@inecol.mx';
-$mail_message = 'Se ha creado usuario de acceso para recomendante (cartas):<br><br>'
-    . '<strong>Recomendante:</strong> ' . htmlspecialchars($nombre . ' ' . $apellido_p . ' ' . $apellido_m) . '<br>'
-    . '<strong>Correo:</strong> ' . htmlspecialchars($correo) . '<br><br>'
-    . '<strong>Datos de acceso para el recomendante:</strong><br>'
-    . 'Usuario: <strong>' . htmlspecialchars($login) . '</strong><br>'
-    . 'Contraseña: <strong>' . htmlspecialchars($pswd) . '</strong><br><br>'
-    . 'Con estos datos el recomendante puede iniciar sesión y subir sus cartas.';
+// Código de activación (new_ + 28 chars). Al abrir ?a= se activa la cuenta.
+$chars_act = 'abcdefghijklmnopqrstuvxywzABCDEFGHIJKLMNOPQRSTUVXYWZ0123456789!@$*.,;:';
+$act_code = 'new_';
+for ($i = 0; $i < 28; $i++) {
+    $act_code .= $chars_act[mt_rand(0, strlen($chars_act) - 1)];
+}
+sc_exec_sql("UPDATE sec_asp_users SET activation_code = " . sc_sql_injection($act_code) . " WHERE login = " . sc_sql_injection($login));
 
-$asunto = 'INECOL. Usuario de acceso creado para recomendante (cartas)';
+$url_activacion = "http://posgrados.inecol.mx/sce_asp/app_form_add_users/index.php?a=" . $act_code;
+$login_esc = htmlspecialchars($login);
+$pswd_esc  = htmlspecialchars($pswd);
+
+// Párrafo del documento a cargar: solo si hay leyenda desde la BD (sin fallback)
+$_parrafo_documento = '';
+if ($_ctx_leyenda !== '') {
+    $_parrafo_documento = '<p style="margin: 0 0 0.5em; font-size: 13px; color: #333;">Una vez que active su cuenta e inicie sesión, deberá cargar el siguiente documento:</p><p style="margin: 0 0 1.5em; padding: 12px 14px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; font-size: 13px; color: #1a1a1a;"><strong>' . $_ctx_leyenda . '</strong></p>';
+}
+
+$msg_bienvenida = '
+<table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; font-family: \'Segoe UI\', Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #2c2c2c;">
+  <tr><td style="background: #1e4d7b; padding: 18px 24px; text-align: center;"><span style="color: #fff; font-size: 16px; font-weight: 600;">Instituto de Ecología A.C.</span><br><span style="color: #b8d4e8; font-size: 12px;">Subsistema de Aspirantes al Posgrado</span></td></tr>
+  <tr><td style="padding: 28px 24px; border: 1px solid #e0e4e8; border-top: none; background: #fff;">
+    <p style="margin: 0 0 1.25em;">Estimado(a) <strong>' . $_nom_recom . '</strong>:</p>
+    <p style="margin: 0 0 1.25em;">Por medio del presente, le informamos que se ha generado su usuario de acceso al Subsistema de Aspirantes al Posgrado del INECOL.</p>
+    <p style="margin: 0 0 1.25em;">El/la aspirante <strong>' . $_ctx_nom_asp . '</strong> lo/la ha registrado como recomendante dentro de su proceso de admisión al posgrado del INECOL.</p>
+    <p style="margin: 0 0 0.75em;">Para ingresar al sistema, es necesario que active su registro haciendo clic en el siguiente enlace:</p>
+    <p style="margin: 0 0 1em;"><a href="' . $url_activacion . '" style="display: inline-block; padding: 10px 18px; background: #1e4d7b; color: #fff !important; text-decoration: none; border-radius: 4px; font-weight: 600;">Haga clic aquí para activar su cuenta</a></p>
+    <p style="margin: 0 0 0.35em; font-size: 12px; color: #555;">Si el enlace no funciona, copie y pegue la siguiente dirección en la barra de su navegador:</p>
+    <p style="margin: 0 0 1.5em; padding: 10px 12px; background: #f5f7f9; border-left: 4px solid #1e4d7b; border-radius: 2px; font-size: 12px; word-break: break-all; color: #444;">' . $url_activacion . '</p>
+    <p style="margin: 0 0 0.5em; font-size: 13px; color: #333; font-weight: 600;">Datos de acceso:</p>
+    <table cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin: 0 0 1.5em; border: 1px solid #dee2e6; border-radius: 4px; background: #fafbfc;">
+      <tr><td style="padding: 12px 14px; border-bottom: 1px solid #eee; color: #555; width: 120px;">Usuario</td><td style="padding: 12px 14px; border-bottom: 1px solid #eee;"><strong>' . $login_esc . '</strong></td></tr>
+      <tr><td style="padding: 12px 14px; color: #555;">Contraseña</td><td style="padding: 12px 14px;"><strong>' . $pswd_esc . '</strong></td></tr>
+    </table>
+    ' . $_parrafo_documento . '
+    <p style="margin: 0 0 1.25em;">Tras completar la activación, podrá acceder a la pantalla principal del Subsistema de Aspirantes al Posgrado del INECOL para realizar el proceso correspondiente.</p>
+  </td></tr>
+  <tr><td style="padding: 16px 24px; background: #f5f7f9; border: 1px solid #e0e4e8; border-top: 1px solid #dee2e6; font-size: 11px; color: #666;">Esta dirección de correo electrónico no recibe respuestas.</td></tr>
+  <tr><td style="padding: 14px 24px; background: #fff; border: 1px solid #e0e4e8; border-top: none; font-size: 12px; color: #444;">Atentamente,<br><strong>Instituto de Ecología A.C.</strong><br>Sistema de Control Escolar – Posgrado</td></tr>
+</table>';
 
 try {
-    $mail_smtp_server    = 'smtp.gmail.com';
-    $mail_smtp_user      = 'sce.posgrado@gmail.com';
-    $mail_smtp_pass      = 'fqczuzvfomytleda';
-    $mail_from           = 'sce.posgrado@gmail.com';
-    $mail_copies         = '';
-    $mail_format         = 'H';
-    $mail_tp_copies      = 'CCC';
-    $mail_port           = '465';
-    $mail_tp_connection  = 'S';
-
     @sc_mail_send($mail_smtp_server, $mail_smtp_user, $mail_smtp_pass, $mail_from,
-        $mail_to, $asunto, $mail_message, $mail_format, $mail_copies, $mail_tp_copies,
+        $correo, 'INECOL. Registro al Subsistema de Aspirantes al Posgrado', $msg_bienvenida, $mail_format, $mail_cc_admin, $mail_tp_copies,
         $mail_port, $mail_tp_connection);
+    error_log("crear_usuario_recomendante: Correo bienvenida enviado a $correo, CC: $mail_cc_admin");
 } catch (Exception $e) {
-    error_log("form_recomendantes: Error enviando correo usuario recomendante: " . $e->getMessage());
+    error_log("crear_usuario_recomendante: Error correo bienvenida: " . $e->getMessage());
 }

@@ -1,0 +1,18 @@
+$qry_existe='SELECT id_pago_FK FROM sce.facturas WHERE id_pago_FK='.{id_pago};
+//echo $nom_asp;
+sc_lookup(rs,$qry_existe);
+if (!isset({rs[0][0]})) 
+{
+	if ({cc_factura}==1)
+	{
+		$insert_sql = "INSERT INTO sce.facturas (id_pago_FK, login_insert, fecha_alta, ip_alta) VALUES ('"
+					   .{id_pago}."',' ".[usr_login]."', NOW(), '".$ipalta."')";
+		sc_exec_sql($insert_sql);
+		sc_block_display(datos_facturacion, 'on');
+		sc_redir('form_pagos');
+	}
+	else
+	{
+		sc_block_display(datos_facturacion, 'off');
+	}
+}

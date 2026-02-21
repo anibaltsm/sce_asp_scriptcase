@@ -1,0 +1,81 @@
+// ====================================================================
+// Evento: onApplicationInit
+// Scriptcase: v9 | PHP 8.1
+// Documentación: https://www.scriptcase.net/docs/en_us/v9/manual/06-applications/05-form-application/18-form-events/
+// Macros usados: sc_btn_display, sc_error_message, sc_redir
+// Fuente: https://www.scriptcase.net/docs/en_us/v9/manual/14-macros/02-macros/
+// ====================================================================
+// Función: Ocultar botones de borrar (global + por fila) + validar sesión
+// ====================================================================
+
+// 1. Ocultar botón global de Delete
+sc_btn_display("delete", "off");
+
+// 2. Aviso: una vez guardado no se puede editar
+?>
+<div class="sc-aviso-recomendantes" style="background:#fff3cd;border:1px solid #ffc107;color:#856404;padding:10px 12px;margin:0 0 15px 0;border-radius:4px;font-size:14px;">
+<strong>⚠️ Aviso:</strong> Una vez que guarde los datos de un recomendante, no podrá modificarlos. Verifique que toda la información (incluido el correo) sea correcta antes de guardar.
+</div>
+<style>
+/* Ocultar SOLO botones/iconos de borrar - NO tocar Update/Save (nm_gp_submit) */
+.scGridToolbar a[title*="Delete"],
+.scGridToolbar a[title*="Borrar"],
+.scGridToolbar img[alt*="Delete"],
+.scGridToolbar img[alt*="Borrar"],
+button[name*="delete"],
+button[name*="excluir"],
+td.scGridBlockLineButtonDelete,
+.scGridFieldOddFont img[src*="scriptcase__NM__delete"],
+.scGridFieldEvenFont img[src*="scriptcase__NM__delete"],
+img[src*="scriptcase__NM__delete"],
+img[src*="scriptcase__NM__ico_delete"],
+img[src*="scriptcase__NM__btdel"],
+.scButton_delete {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+/* Ocultar columna completa de botones de acción si solo tiene delete */
+td.scGridBlockLineButtonDelete {
+    display: none !important;
+}
+
+/* Específico para iconos de acción en cada fila */
+.scGridToolbar img[title="Delete"],
+.scGridToolbar img[title="Borrar"],
+.scGridFieldOdd img[title="Delete"],
+.scGridFieldOdd img[title="Borrar"],
+.scGridFieldEven img[title="Delete"],
+.scGridFieldEven img[title="Borrar"] {
+    display: none !important;
+}
+</style>
+<script>
+(function() {
+    function ocultarBotonesDelete() {
+        var s = ['img[src*="delete"]','img[src*="btdel"]','img[src*="ico_delete"]','img[title="Delete"]','img[title="Borrar"]','.scButton_delete','button[name*="delete"]'];
+        for (var i=0;i<s.length;i++) {
+            try {
+                var el = document.querySelectorAll(s[i]);
+                for (var j=0;j<el.length;j++) { el[j].style.display='none'; el[j].style.visibility='hidden'; el[j].style.opacity='0'; }
+            } catch(e){}
+        }
+    }
+    if (document.readyState==='loading') document.addEventListener('DOMContentLoaded',ocultarBotonesDelete);
+    else ocultarBotonesDelete();
+    setTimeout(ocultarBotonesDelete, 300);
+})();
+</script>
+<?php
+
+// 3. Validar sesión del aspirante
+if (empty($_SESSION['id_asp']) || (string)$_SESSION['id_asp'] === '') {
+    sc_error_message("Debe iniciar sesión como aspirante para acceder a Recomendantes.");
+    sc_redir('menu_aspirante');
+    exit;
+}
+
+[id_asp] = $_SESSION['id_asp'];

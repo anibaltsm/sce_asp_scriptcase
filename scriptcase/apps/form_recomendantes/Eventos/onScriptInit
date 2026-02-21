@@ -1,0 +1,11 @@
+// ====================================================================
+// Evento: onScriptInit
+// Scriptcase: v9 | PHP 8.1
+// Documentación: https://www.scriptcase.net/docs/en_us/v9/manual/06-applications/05-form-application/18-form-events/
+// Macros usados: (ninguno)
+// Fuente: https://www.scriptcase.net/docs/en_us/v9/manual/14-macros/02-macros/
+// ====================================================================
+// VACÍO - La confirmación se usa en OnBeforeUpdate con sc_confirm()
+// "Confirmation Message" NO existe para botones estándar (Update/Insert/Delete)
+// No usar JavaScript aquí, causa diálogo "Output"
+// ====================================================================

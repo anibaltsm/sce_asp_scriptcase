@@ -1,0 +1,3 @@
+chg_filename({doc_compr_pago});
+//rellena_datos_pago();
+agregar_cfdi({ip_alta});

@@ -1,0 +1,84 @@
+// ---------------------------------------------------------------------------
+// Método: chg_filename
+// Descripción: Renombra el comprobante de pago subido, lo copia a la carpeta
+//   de aspirantes con nombre normalizado y actualiza ambos registros en BD.
+// Requiere: cont_file y doc_compr_pago con valor para ejecutar.
+// Logs: ver README_LOGS.md en la raíz del proyecto.
+// ---------------------------------------------------------------------------
+// Origen de los datos (form abierto desde grid o enlace; tabla principal: sce.pagos):
+// - referencia: campo de sce.pagos. Se genera al crear el pago (app_form_add_users o crea_referencia)
+//   como "INECOLPA0002" + id_asp sin ceros + "00" → ej. INECOLPA0002127800 (id_asp 1278).
+// - [usr_login]: variable de sesión (login del usuario que abre el form; desde grid del aspirante = su login).
+// - id_asp_FK: campo de sce.pagos (id del aspirante). La tabla NO tiene columna "Id"; por eso antes id_asp quedaba vacío.
+// ---------------------------------------------------------------------------
+
+if ([cont_file] != '' && {doc_compr_pago} != '') {
+
+	error_log("form_pagos chg_filename: INICIO id_pago=".{id_pago}." doc_compr_pago=".{doc_compr_pago});
+
+	// --- Datos del archivo y del registro (tabla pagos tiene id_asp_FK, no Id) ---
+	$ext = substr({doc_compr_pago}, -3, 3);
+	$id_asp = {id_asp_FK};
+
+	// --- Obtener requisito de pago de la convocatoria activa ---
+	// La consulta arroja: num_requisito (ej. 00000000008), prefijo_requisito (ej. comp_pago)
+	// Tabla list_req_gral: atributo prefijo_requisito varchar(255), identifica el tipo de requisito en el nombre del archivo
+	$qry_numreq = "SELECT list_req_gral.num_requisito, list_req_gral.prefijo_requisito FROM convocatorias_posg
+		INNER JOIN list_req_gral
+		ON convocatorias_posg.id_conv = list_req_gral.id_conv_FK
+		WHERE cc_activa = 1 AND cc_pago = 1";
+	sc_lookup(rs, $qry_numreq);
+	$num_req = {rs[0][0]};
+	$num_req_short = str_pad((string)(int)$num_req, 2, '0', STR_PAD_LEFT);
+	if ($num_req_short === '') { $num_req_short = '00'; }
+	$prefijo_req = trim({rs[0][1]});
+	if ($prefijo_req == '') { $prefijo_req = 'pago'; }
+
+	error_log("form_pagos chg_filename: num_req=".$num_req." prefijo_req=".$prefijo_req." ext=".$ext." id_asp=".$id_asp);
+
+	// --- Rutas: pagos (origen) y aspirantes (destino) ---
+	$ruta = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/pagos/".[generacion]."/".[usr_login]."/";
+	$ruta2 = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/aspirantes/".[generacion]."/".[usr_login]."/";
+
+	// --- Nombres nuevos: en pagos (referencia_prefijo.ext); en aspirantes (generacion_id_asp_num_req_prefijo.ext) ---
+	// num_req_short = número con mínimo 2 dígitos (ej. 08, 09, 10) para el nombre del archivo
+	$nw_na = {referencia}."_".$prefijo_req.".".$ext;
+	$nw_na2 = [generacion]."_".$id_asp."_".$num_req_short."_".$prefijo_req.".".$ext;
+	$nom_original = $ruta.{doc_compr_pago};
+
+	// --- Renombrar archivo en carpeta de pagos ---
+	rename($nom_original, $ruta.$nw_na);
+	error_log("form_pagos chg_filename: rename OK -> ".$nw_na);
+
+	// --- Asegurar carpeta de aspirantes (multiplataforma) y copiar archivo ahí ---
+	// Windows: md existe, pero usar PHP evita dependencia del shell y rutas con espacios.
+	// macOS/Linux: md NO existe (es comando de Windows); shell_exec('md') falla sin crear la carpeta.
+	// Solución: mkdir() nativo de PHP con tercer parámetro true = recursivo (como mkdir -p en Unix).
+	// Funciona igual en Windows, macOS y Linux.
+	if (!is_dir($ruta2)) {
+		$ok_dir = @mkdir($ruta2, 0755, true);
+		if (!$ok_dir) { error_log("form_pagos chg_filename: ERROR no se pudo crear carpeta ".$ruta2); }
+		else { error_log("form_pagos chg_filename: carpeta creada ".$ruta2); }
+	}
+	$origen = $ruta.$nw_na;
+	$destino = $ruta2.$nw_na2;
+	error_log("form_pagos chg_filename: ruta_destino=".$ruta2." archivo_destino=".$nw_na2);
+	$ok_copy = @copy($origen, $destino);
+	if (!$ok_copy) {
+		error_log("form_pagos chg_filename: ERROR copy falló origen=".$origen." destino=".$destino." existe_origen=".(file_exists($origen) ? 'si' : 'no')." existe_carpeta_dest=".(is_dir($ruta2) ? 'si' : 'no'));
+	} else {
+		error_log("form_pagos chg_filename: copy OKform_asp_requisitos_1 -> ".$nw_na2." en aspirantes");
+	}
+
+	// --- Actualizar nombre en tabla pagos (sce) ---
+	$update_sql = "UPDATE sce.pagos SET doc_compr_pago='".$nw_na."' WHERE id_pago='".{id_pago}."'";
+	sc_exec_sql($update_sql);
+
+	// --- Actualizar nombre en tabla asp_requisitos (sce_asp) ---
+	$update_sql2 = "UPDATE sce_asp.asp_requisitos SET archivo='".$nw_na2."' WHERE login_FK='".[usr_login]."' AND num_req=".$num_req;
+	sc_exec_sql($update_sql2);
+
+	error_log("form_pagos chg_filename: FIN - pagos y asp_requisitos actualizados");
+} else {
+	error_log("form_pagos chg_filename: SKIP - cont_file o doc_compr_pago vacío");
+}

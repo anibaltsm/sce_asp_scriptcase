@@ -1,0 +1,21 @@
+if ({cc_factura}==1){sc_block_display(datos_facturacion, 'on');}
+else{sc_block_display(datos_facturacion, 'off');}
+
+/*$qry="SELECT cc_finalizado FROM aspirantes WHERE login_FK='".[usr_login]."'";
+sc_lookup(rs,$qry);
+$estado = {rs[0][0]};
+// Si ya ha concluido su captura, entonces deshabilita botones de agregar
+// De lo contrario los deja habilitados.
+if ($estado == '1')     
+{
+	sc_btn_display('new', 'off');
+	//sc_btn_display('delete', 'off');
+	sc_btn_display('update', 'off');
+}
+else  // Hide buttons
+{
+	sc_btn_display('new', 'on');
+	//sc_btn_display('delete', 'on');
+	sc_btn_display('update', 'on');
+}
+*/

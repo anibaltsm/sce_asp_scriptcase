@@ -1,0 +1,2 @@
+$cont_file={doc_compr_pago};
+sc_set_global($cont_file);
