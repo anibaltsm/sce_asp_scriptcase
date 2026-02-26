@@ -4,24 +4,26 @@ Este archivo documenta cómo quedan las rutas según el entorno. **El código us
 
 ---
 
-## Entorno: **DEV (mac)**
+## Entorno: **PROD (Linux)**
 
-| Variable / Uso | Valor en dev (Mac) |
-|----------------|--------------------|
-| `DOCUMENT_ROOT` (típico XAMPP) | `/Applications/XAMPP/xamppfiles/htdocs` |
-| Proyecto aspirantes (sce_asp) | `/Applications/XAMPP/xamppfiles/htdocs/sce_asp/` |
-| Proyecto control escolar (sce) | `/Applications/XAMPP/xamppfiles/htdocs/sce/` |
-| Archivos doc – pagos (origen upload) | `.../htdocs/sce_asp/_lib/file/doc/pagos/[generacion]/` |
-| Archivos doc – pagos (grid, destino final) | `.../htdocs/sce/_lib/file/doc/pagos/[generacion]/` |
-| Archivos doc – aspirantes | `.../htdocs/sce_asp/_lib/file/doc/aspirantes/[generacion]/[login]/` |
-| Archivos doc – cartas | `.../htdocs/sce_asp/_lib/file/doc/cartas/[generacion]/` |
+| Variable / Uso | Valor en prod (Linux) |
+|----------------|------------------------|
+| `DOCUMENT_ROOT` (típico Apache) | `/var/www/html` |
+| Proyecto aspirantes (sce_asp) | `/var/www/html/sce_asp/` |
+| Proyecto control escolar (sce) | `/var/www/html/sce/` |
+| Archivos doc – pagos (origen upload) | `.../html/sce_asp/_lib/file/doc/pagos/[generacion]/` |
+| Archivos doc – pagos (grid, destino final) | `.../html/sce/_lib/file/doc/pagos/[generacion]/` |
+| Archivos doc – aspirantes | `.../html/sce_asp/_lib/file/doc/aspirantes/[generacion]/[login]/` |
+| Archivos doc – cartas | `.../html/sce_asp/_lib/file/doc/cartas/[generacion]/` |
 
-**Ejemplo ruta completa en dev (pagos 2026):**  
-`/Applications/XAMPP/xamppfiles/htdocs/sce/_lib/file/doc/pagos/2026/`
+**Ejemplo ruta completa en prod (pagos 2026):**  
+`/var/www/html/sce/_lib/file/doc/pagos/2026/`
+
+*Ajustar `DOCUMENT_ROOT` si el servidor usa otra raíz (ej. `/home/usuario/public_html`).*
 
 ---
 
 ## Uso
 
-- En **dev**: copiar/pegar estas rutas donde ScriptCase pida “Subdirectorio para almacenamiento local” o al revisar logs.
-- En **prod**: ver el mismo archivo en la rama `prod` (rutas Linux).
+- En **prod**: copiar/pegar estas rutas donde ScriptCase pida “Subdirectorio para almacenamiento local” o al revisar logs.
+- En **dev** (Mac): ver el mismo archivo en la rama `dev` (rutas XAMPP Mac).
