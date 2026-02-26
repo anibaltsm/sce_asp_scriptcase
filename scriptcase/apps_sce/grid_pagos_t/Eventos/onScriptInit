@@ -1,0 +1,12 @@
+// Año actual
+$year = date("Y");
+[glo_year]= $year;
+
+// Crear carpeta si no existe
+//$base_path = $_SERVER['DOCUMENT_ROOT'] . "/scriptcase/file/doc/pagos/" . $year . "/";
+//if (!is_dir($base_path)) {
+//    mkdir($base_path, 0777, true);
+//}
+
+// Asignar global
+//sc_set_global(subdir_pagos, $year);

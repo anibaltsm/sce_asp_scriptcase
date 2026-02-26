@@ -1,0 +1,5 @@
+// Asignar el valor del id_pago actual a variable global
+[id_pago_global] = {id_pago};
+
+// Crear botón como enlace HTML
+{btn_editar} = "<a href=\"../form_facturas/form_facturas.php?id_pago_global={id_pago}\" target=\"_self\">EDITAR</a>";

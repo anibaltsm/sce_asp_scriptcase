@@ -1,0 +1,261 @@
+// ---------------------------------------------------------------------------
+// Evento: OnAfterUpdate
+// Renombra el archivo subido en cartas/[generacion]/ con nomenclatura estándar
+// y lo copia a aspirantes/[generacion]/[correo_aspirante]/.
+// Actualiza asp_requisitos.archivo con el nombre final en BD.
+//
+// Rutas (usa DOCUMENT_ROOT — funciona en macOS, Linux y Windows):
+//   Origen:  .../doc/cartas/[generacion]/            ← ScriptCase deposita el archivo aquí
+//   Destino: .../doc/aspirantes/[generacion]/[login_FK del registro]/
+//
+// Correo del aspirante: campo {login_FK} del registro de asp_requisitos.
+//   NO se usa [usr_login] porque ese es el usuario logueado (puede ser el recomendante).
+//
+// Nombre final: generacion_id_asp_num_req_prefijo.ext  (ej. 2026_1281_11_carta_opinion.pdf)
+// Logs: ver README_LOGS.md en la raíz del proyecto.
+// ---------------------------------------------------------------------------
+
+// PASO 1: Validar que hay archivo subido
+if (empty({archivo})) {
+	error_log("form_asp_requisitos_1 OnAfterUpdate: SKIP - campo archivo vacío");
+	return;
+}
+$nombre_original = basename({archivo});
+error_log("form_asp_requisitos_1 OnAfterUpdate: INICIO id_asp_req=".{id_asp_req}." archivo=".$nombre_original);
+
+// PASO 2: Extensión del archivo
+$ext = strtolower(pathinfo($nombre_original, PATHINFO_EXTENSION));
+if ($ext === '') { $ext = 'pdf'; }
+
+// PASO 3: Datos del registro
+// id_asp_FK viene con zerofill → se limpia para el nombre (ej. 00000001281 → 1281)
+$id_asp = (string)(int){id_asp_FK};
+// num_req viene con zerofill → mínimo 2 dígitos (ej. 00000011 → 11)
+$num_req_short = str_pad((string)(int){num_req}, 2, '0', STR_PAD_LEFT);
+// login_FK del registro = correo del aspirante (NO [usr_login] que es el logueado)
+$correo_asp = trim({login_FK});
+
+// PASO 4: Prefijo del tipo de requisito (del campo del registro; si está vacío, desde sce.list_req_gral)
+$prefijo_req = trim({prefijo_requisito});
+if ($prefijo_req === '') {
+	sc_lookup(rs_pref, "SELECT prefijo_requisito FROM sce.list_req_gral WHERE id_lisreq = ".{id_lisreq_FK});
+	$prefijo_req = trim({rs_pref[0][0]});
+}
+error_log("form_asp_requisitos_1 OnAfterUpdate: id_asp=".$id_asp." num_req=".$num_req_short." prefijo=".$prefijo_req." correo_asp=".$correo_asp." ext=".$ext);
+
+// PASO 5: Rutas
+// cartas/[generacion]/           → donde ScriptCase sube el archivo (subdirectorio del campo)
+// cartas/[generacion]/[correo_asp]/ → donde dejamos el archivo renombrado (por aspirante)
+// aspirantes/[generacion]/[correo_asp]/ → copia final
+$ruta_cartas_plano = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/cartas/".[generacion]."/";
+$ruta_cartas_asp   = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/cartas/".[generacion]."/".$correo_asp."/";
+$ruta_destino      = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/aspirantes/".[generacion]."/".$correo_asp."/";
+error_log("form_asp_requisitos_1 OnAfterUpdate: ruta_cartas_plano=".$ruta_cartas_plano." ruta_cartas_asp=".$ruta_cartas_asp);
+
+// PASO 6: Nombre final del archivo
+// Formato: generacion_id_asp_num_req_prefijo.ext  (ej. 2026_1281_11_carta_opinion.pdf)
+$nombre_pdf = [generacion]."_".$id_asp."_".$num_req_short."_".$prefijo_req.".".$ext;
+error_log("form_asp_requisitos_1 OnAfterUpdate: nombre_pdf=".$nombre_pdf." destino=".$ruta_destino);
+
+// PASO 7: Localizar el archivo en cartas/[generacion]/ (donde ScriptCase lo sube)
+// Se hacen hasta 3 intentos (1s entre cada uno) por si ScriptCase escribe el archivo justo después del evento.
+$archivo_origen = null;
+for ($i = 0; $i < 3; $i++) {
+	if ($i > 0) { sleep(1); }
+	$candidato = $ruta_cartas_plano . $nombre_original;
+	if (file_exists($candidato)) {
+		$archivo_origen = $candidato;
+		break;
+	}
+	// Si no existe con nombre exacto, tomar el archivo más reciente de la carpeta (< 90 s)
+	if (is_dir($ruta_cartas_plano)) {
+		$hace_90  = time() - 90;
+		$reciente = null;
+		foreach (new DirectoryIterator($ruta_cartas_plano) as $f) {
+			if ($f->isDot() || !$f->isFile() || strtolower($f->getExtension()) !== $ext) continue;
+			if ($f->getMTime() < $hace_90) continue;
+			if ($reciente === null || $f->getMTime() > $reciente['mtime']) {
+				$reciente = array('path' => $f->getPathname(), 'mtime' => $f->getMTime());
+			}
+		}
+		if ($reciente !== null) {
+			$archivo_origen = $reciente['path'];
+			break;
+		}
+	}
+}
+
+if ($archivo_origen === null || !file_exists($archivo_origen)) {
+	error_log("form_asp_requisitos_1 OnAfterUpdate: ERROR no se encontró el archivo en ".$ruta_cartas_plano." buscado=".$nombre_original);
+	sc_error_message("No se encontró el archivo subido en la carpeta de carga. Intenta de nuevo.");
+	return;
+}
+error_log("form_asp_requisitos_1 OnAfterUpdate: archivo encontrado -> ".basename($archivo_origen));
+
+// PASO 8: Crear cartas/[generacion]/[correo_asp]/ si no existe y mover ahí el archivo renombrado
+if (!is_dir($ruta_cartas_asp)) {
+	$ok_cartas = @mkdir($ruta_cartas_asp, 0755, true);
+	if (!$ok_cartas) { error_log("form_asp_requisitos_1 OnAfterUpdate: ERROR no se pudo crear carpeta ".$ruta_cartas_asp); }
+	else             { error_log("form_asp_requisitos_1 OnAfterUpdate: carpeta cartas creada ".$ruta_cartas_asp); }
+}
+$archivo_renombrado = $ruta_cartas_asp . $nombre_pdf;
+rename($archivo_origen, $archivo_renombrado);
+error_log("form_asp_requisitos_1 OnAfterUpdate: rename OK en cartas/".$correo_asp."/ -> ".$nombre_pdf);
+
+// PASO 9: Crear carpeta del aspirante en aspirantes/ si no existe
+if (!is_dir($ruta_destino)) {
+	$ok_dir = @mkdir($ruta_destino, 0755, true);
+	if (!$ok_dir) { error_log("form_asp_requisitos_1 OnAfterUpdate: ERROR no se pudo crear carpeta ".$ruta_destino); }
+	else          { error_log("form_asp_requisitos_1 OnAfterUpdate: carpeta aspirantes creada ".$ruta_destino); }
+}
+
+// PASO 10: Copiar archivo a aspirantes/[generacion]/[correo_asp]/
+$archivo_destino = $ruta_destino . $nombre_pdf;
+$ok_copy = @copy($archivo_renombrado, $archivo_destino);
+if (!$ok_copy) {
+	error_log("form_asp_requisitos_1 OnAfterUpdate: ERROR copy falló origen=".$archivo_renombrado." destino=".$archivo_destino." existe_origen=".(file_exists($archivo_renombrado) ? 'si' : 'no')." existe_carpeta_dest=".(is_dir($ruta_destino) ? 'si' : 'no'));
+	sc_error_message("No se pudo copiar el archivo a la carpeta del aspirante.");
+	return;
+}
+error_log("form_asp_requisitos_1 OnAfterUpdate: copy OK -> ".$nombre_pdf." en aspirantes/".$correo_asp."/");
+
+// PASO 11: Actualizar campo archivo en asp_requisitos con el nombre final
+sc_exec_sql("UPDATE sce_asp.asp_requisitos SET archivo='".addslashes($nombre_pdf)."' WHERE id_asp_req=".{id_asp_req});
+error_log("form_asp_requisitos_1 OnAfterUpdate: FIN - asp_requisitos actualizado id_asp_req=".{id_asp_req});
+
+// PASO 12: Correo de confirmación de carga del documento
+// TO: aspirante | CC: recomendante vinculado a este requisito + anibal.sanchez@inecol.mx
+// ----------------------------------------------------------------------------
+$_m_smtp     = 'smtp.office365.com';
+$_m_user     = 'sce.posgrado@inecol.mx';
+$_m_pass     = '5C3.P0sgr4d0';
+$_m_from     = 'sce.posgrado@inecol.mx';
+$_m_admin    = 'anibal.sanchez@inecol.mx';
+$_m_port     = '587';
+$_m_conn     = 'T';
+$_m_fecha    = date('d/m/Y') . ' a las ' . date('H:i') . ' h';
+
+// Nombre completo del aspirante
+$_m_nom_asp = '';
+sc_lookup(rs_m_asp, "SELECT nombres, ap_pat, ap_mat FROM aspirantes WHERE id_asp = " . sc_sql_injection({id_asp_FK}));
+if (isset({rs_m_asp[0][0]})) {
+	$_m_nom_asp = htmlspecialchars(trim({rs_m_asp[0][0]}) . ' ' . trim({rs_m_asp[0][1]}) . ' ' . trim({rs_m_asp[0][2]}));
+}
+
+// Leyenda del documento cargado
+$_m_leyenda = '';
+sc_lookup(rs_m_ley, "SELECT leyenda FROM sce.list_req_gral WHERE id_lisreq = " . sc_sql_injection({id_lisreq_FK}));
+if (isset({rs_m_ley[0][0]})) {
+	$_m_leyenda = htmlspecialchars(trim({rs_m_ley[0][0]}));
+}
+
+// Recomendante vinculado a este aspirante y este requisito
+$_m_correo_recom = '';
+$_m_nom_recom    = '';
+sc_lookup(rs_m_recom, "SELECT r.correo, r.nombre, r.apellido_p, r.apellido_m FROM recomendantes r INNER JOIN asp_recomendantes ar ON ar.id_recom_FK = r.id_recom WHERE ar.id_asp_FK = " . sc_sql_injection({id_asp_FK}) . " AND ar.num_req = " . sc_sql_injection({num_req}) . " LIMIT 1");
+if (isset({rs_m_recom[0][0]})) {
+	$_m_correo_recom = trim({rs_m_recom[0][0]});
+	$_m_nom_recom    = htmlspecialchars(trim({rs_m_recom[0][1]}) . ' ' . trim({rs_m_recom[0][2]}) . ' ' . trim({rs_m_recom[0][3]}));
+}
+
+// Intentar un solo correo TO aspirante con CC a recomendante + admin usando ";" como separador.
+// Si sc_mail_send rechaza varios CC (RFC 2822), en logs se verá el error y se puede volver a 2 llamadas.
+$_m_cc = $_m_admin;
+if ($_m_correo_recom !== '' && $_m_correo_recom !== $correo_asp) {
+	$_m_cc = $_m_correo_recom . ';' . $_m_admin;
+}
+error_log("form_asp_requisitos_1 OnAfterUpdate: CC string (separador ;) = " . $_m_cc);
+
+// Fila del recomendante en el bloque de detalles (solo si aplica)
+$_m_fila_recom = '';
+if ($_m_nom_recom !== '' || $_m_correo_recom !== '') {
+	$_m_fila_recom = '<tr>
+		<td style="padding: 11px 16px; border-bottom: 1px solid #eaecef; color: #6b7280; font-size: 13px; white-space: nowrap; vertical-align: top; width: 150px;">Recomendante</td>
+		<td style="padding: 11px 16px; border-bottom: 1px solid #eaecef; font-size: 13px; vertical-align: top;"><strong>' . $_m_nom_recom . '</strong><br><span style="color: #6b7280; font-size: 12px;">' . htmlspecialchars($_m_correo_recom) . '</span></td>
+	</tr>';
+}
+
+$_m_body = '
+<table cellpadding="0" cellspacing="0" border="0" style="width: 100%; max-width: 600px; margin: 0 auto; font-family: \'Segoe UI\', Arial, sans-serif; color: #1f2937;">
+
+  <!-- CABECERA -->
+  <tr>
+    <td style="background: #1e4d7b; padding: 22px 28px;">
+      <table cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+          <td>
+            <p style="margin: 0; color: #ffffff; font-size: 17px; font-weight: 700; letter-spacing: 0.3px;">Instituto de Ecología A.C.</p>
+            <p style="margin: 4px 0 0; color: #93c5e0; font-size: 12px;">Subsistema de Aspirantes al Posgrado</p>
+          </td>
+          <td style="text-align: right; vertical-align: middle;">
+            <span style="display: inline-block; padding: 4px 10px; background: #27ae60; border-radius: 20px; color: #fff; font-size: 11px; font-weight: 600; letter-spacing: 0.5px;">✔ DOCUMENTO CARGADO</span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <!-- CUERPO -->
+  <tr>
+    <td style="padding: 30px 28px; background: #ffffff; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb;">
+
+      <p style="margin: 0 0 14px; font-size: 15px; color: #1f2937; line-height: 1.5;">Por medio del presente se le informa que el documento que se detalla a continuación ha sido <strong>cargado correctamente</strong> en el Subsistema de Aspirantes al Posgrado del INECOL y será <strong>revisado por la instancia correspondiente</strong> en el marco del proceso de admisión.</p>
+      <p style="margin: 0 0 24px; font-size: 13px; color: #6b7280;">Fecha y hora de carga: ' . $_m_fecha . '</p>
+
+      <!-- TABLA DE DETALLES -->
+      <table cellpadding="0" cellspacing="0" border="0" style="width: 100%; border: 1px solid #e5e7eb; border-radius: 6px; border-collapse: separate; border-spacing: 0; overflow: hidden; margin: 0 0 24px;">
+        <tr style="background: #f8fafc;">
+          <td colspan="2" style="padding: 10px 16px; font-size: 12px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.6px; border-bottom: 1px solid #e5e7eb;">
+            Detalle del documento
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 11px 16px; border-bottom: 1px solid #eaecef; color: #6b7280; font-size: 13px; white-space: nowrap; vertical-align: top; width: 150px;">Aspirante</td>
+          <td style="padding: 11px 16px; border-bottom: 1px solid #eaecef; font-size: 13px; vertical-align: top;"><strong>' . $_m_nom_asp . '</strong><br><span style="color: #6b7280; font-size: 12px;">' . htmlspecialchars($correo_asp) . '</span></td>
+        </tr>
+        ' . $_m_fila_recom . '
+        <tr>
+          <td style="padding: 11px 16px; border-bottom: 1px solid #eaecef; color: #6b7280; font-size: 13px; vertical-align: top;">Documento</td>
+          <td style="padding: 11px 16px; border-bottom: 1px solid #eaecef; font-size: 13px; vertical-align: top;"><strong>' . $_m_leyenda . '</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 11px 16px; border-bottom: 1px solid #eaecef; color: #6b7280; font-size: 13px; vertical-align: top;">Generación</td>
+          <td style="padding: 11px 16px; border-bottom: 1px solid #eaecef; font-size: 13px; vertical-align: top;">' . htmlspecialchars([generacion]) . '</td>
+        </tr>
+        <tr>
+          <td style="padding: 11px 16px; color: #6b7280; font-size: 13px; vertical-align: top;">Archivo</td>
+          <td style="padding: 11px 16px; font-size: 13px; vertical-align: top; word-break: break-all;"><code style="background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-size: 12px; color: #374151;">' . htmlspecialchars($nombre_pdf) . '</code></td>
+        </tr>
+      </table>
+
+      <p style="margin: 0; font-size: 13px; color: #6b7280;">Le reiteramos que no es necesario realizar ninguna acción adicional; se le notificará en su momento sobre el resultado de la revisión.</p>
+    </td>
+  </tr>
+
+  <!-- PIE -->
+  <tr>
+    <td style="padding: 14px 28px; background: #f8fafc; border: 1px solid #e5e7eb; border-top: none; font-size: 11px; color: #9ca3af;">
+      Esta dirección de correo electrónico no recibe respuestas.
+    </td>
+  </tr>
+  <tr>
+    <td style="padding: 14px 28px; background: #ffffff; border: 1px solid #e5e7eb; border-top: none; font-size: 12px; color: #374151;">
+      Atentamente,<br>
+      <strong>Instituto de Ecología A.C.</strong><br>
+      Sistema de Control Escolar – Posgrado
+    </td>
+  </tr>
+
+</table>';
+
+$_m_asunto = 'INECOL. Documento cargado correctamente – Será revisado';
+
+// Un solo envío TO aspirante con CC = recomendante;admin (separador ;). Si falla RFC 2822, ver log y usar 2 llamadas.
+try {
+	@sc_mail_send($_m_smtp, $_m_user, $_m_pass, $_m_from,
+		$correo_asp, $_m_asunto, $_m_body, 'H', $_m_cc, 'CCC',
+		$_m_port, $_m_conn);
+	error_log("form_asp_requisitos_1 OnAfterUpdate: Correo enviado To=aspirante($correo_asp) CC=" . $_m_cc);
+} catch (Exception $e) {
+	error_log("form_asp_requisitos_1 OnAfterUpdate: Error correo (sc_mail_send CC con ;): " . $e->getMessage());
+}

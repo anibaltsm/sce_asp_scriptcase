@@ -8,8 +8,13 @@
 // Origen de los datos (form abierto desde grid o enlace; tabla principal: sce.pagos):
 // - referencia: campo de sce.pagos. Se genera al crear el pago (app_form_add_users o crea_referencia)
 //   como "INECOLPA0002" + id_asp sin ceros + "00" → ej. INECOLPA0002127800 (id_asp 1278).
-// - [usr_login]: variable de sesión (login del usuario que abre el form; desde grid del aspirante = su login).
-// - id_asp_FK: campo de sce.pagos (id del aspirante). La tabla NO tiene columna "Id"; por eso antes id_asp quedaba vacío.
+// - usr_login: variable de sesión (login del usuario que abre el form). Se usa solo para carpeta
+//   aspirantes (destino) y para el UPDATE en asp_requisitos.
+// - id_asp_FK: campo de sce.pagos (id del aspirante). La tabla NO tiene columna "Id".
+//
+// CARPETA PAGOS: el archivo subido (UUID) viene en sce_asp/_lib/file/doc/pagos/generacion/
+//   pero su destino final es sce/_lib/file/doc/pagos/generacion/ (proyecto sce, donde lo sirve el grid).
+// CARPETA ASPIRANTES (copia): aspirantes/generacion/usr_login/ en sce_asp — se mantiene por aspirante.
 // ---------------------------------------------------------------------------
 
 if ([cont_file] != '' && {doc_compr_pago} != '') {
@@ -36,19 +41,34 @@ if ([cont_file] != '' && {doc_compr_pago} != '') {
 
 	error_log("form_pagos chg_filename: num_req=".$num_req." prefijo_req=".$prefijo_req." ext=".$ext." id_asp=".$id_asp);
 
-	// --- Rutas: pagos (origen) y aspirantes (destino) ---
-	$ruta = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/pagos/".[generacion]."/".[usr_login]."/";
+	// --- Rutas ---
+	// $ruta_upload: donde ScriptCase (form_pagos, proyecto sce_asp) dejó el UUID subido
+	// $ruta:        destino final del comprobante renombrado (proyecto sce, donde lo sirve grid_pagos_t)
+	// $ruta2:       copia en carpeta del aspirante (sce_asp, por generacion/login)
+	$ruta_upload = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/pagos/".[generacion]."/";
+	$ruta  = $_SERVER['DOCUMENT_ROOT'] . "/sce/_lib/file/doc/pagos/".[generacion]."/";
 	$ruta2 = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/aspirantes/".[generacion]."/".[usr_login]."/";
+
+	// Asegurar que exista la carpeta destino en sce/
+	if (!is_dir($ruta)) {
+		@mkdir($ruta, 0755, true);
+		error_log("form_pagos chg_filename: carpeta pagos sce creada " . $ruta);
+	}
 
 	// --- Nombres nuevos: en pagos (referencia_prefijo.ext); en aspirantes (generacion_id_asp_num_req_prefijo.ext) ---
 	// num_req_short = número con mínimo 2 dígitos (ej. 08, 09, 10) para el nombre del archivo
 	$nw_na = {referencia}."_".$prefijo_req.".".$ext;
 	$nw_na2 = [generacion]."_".$id_asp."_".$num_req_short."_".$prefijo_req.".".$ext;
-	$nom_original = $ruta.{doc_compr_pago};
+	// El UUID subido está en sce_asp; se mueve/renombra al destino final en sce/
+	$nom_original = $ruta_upload.{doc_compr_pago};
 
-	// --- Renombrar archivo en carpeta de pagos ---
-	rename($nom_original, $ruta.$nw_na);
-	error_log("form_pagos chg_filename: rename OK -> ".$nw_na);
+	// --- Mover archivo de sce_asp (upload) a sce (destino grid) renombrado ---
+	$ok_rename = @rename($nom_original, $ruta.$nw_na);
+	if (!$ok_rename) {
+		error_log("form_pagos chg_filename: ERROR rename origen=".$nom_original." destino=".$ruta.$nw_na." existe_origen=".(file_exists($nom_original) ? 'si' : 'no'));
+	} else {
+		error_log("form_pagos chg_filename: rename OK -> ".$ruta.$nw_na);
+	}
 
 	// --- Asegurar carpeta de aspirantes (multiplataforma) y copiar archivo ahí ---
 	// Windows: md existe, pero usar PHP evita dependencia del shell y rutas con espacios.
@@ -67,7 +87,7 @@ if ([cont_file] != '' && {doc_compr_pago} != '') {
 	if (!$ok_copy) {
 		error_log("form_pagos chg_filename: ERROR copy falló origen=".$origen." destino=".$destino." existe_origen=".(file_exists($origen) ? 'si' : 'no')." existe_carpeta_dest=".(is_dir($ruta2) ? 'si' : 'no'));
 	} else {
-		error_log("form_pagos chg_filename: copy OKform_asp_requisitos_1 -> ".$nw_na2." en aspirantes");
+		error_log("form_pagos chg_filename: copy OK -> ".$nw_na2." en aspirantes");
 	}
 
 	// --- Actualizar nombre en tabla pagos (sce) ---

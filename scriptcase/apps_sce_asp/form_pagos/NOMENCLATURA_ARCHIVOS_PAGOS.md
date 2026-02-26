@@ -6,7 +6,12 @@ Documento de referencia para la convención de nombres de los archivos de compro
 
 ## 1. Carpeta de pagos (origen)
 
-**Ruta base:** `.../doc/pagos/[generacion]/[usr_login]/`
+**Ruta base:** `.../doc/pagos/[generacion]/` (sin subcarpeta por usuario)
+
+El comprobante se guarda **solo** en `pagos/[generacion]/`. Para que ScriptCase suba el archivo ahí, en el formulario el campo del archivo (doc_compr_pago) debe tener:
+
+- **Subdirectorio para almacenamiento local:** `pagos/[generacion]`  
+  (no usar `pagos/[generacion]/[usr_login]`).
 
 **Formato del nombre del archivo:**
 ```text
@@ -61,7 +66,7 @@ Este mismo nombre se guarda en la base de datos en `sce_asp.asp_requisitos.archi
 
 - **referencia:** Campo en `sce.pagos`; se asigna al crear el pago (app alta de aspirante o app crear referencia).
 - **generacion:** Variable de sesión (ej. año de la convocatoria).
-- **usr_login:** Variable de sesión (login del usuario que sube el comprobante; en uso aspirante = su correo/login).
+- **usr_login:** Variable de sesión (login del aspirante); se usa para la carpeta de **aspirantes** y para el UPDATE en `asp_requisitos`. En la carpeta **pagos** no se usa subcarpeta por usuario.
 - **id_asp:** Id del aspirante, campo `id_asp_FK` en `sce.pagos`.
 - **prefijo_requisito:** Definido en `list_req_gral` para el requisito de tipo pago de la convocatoria activa (ej. `comp_pago`).
 

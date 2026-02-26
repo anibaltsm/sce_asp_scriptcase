@@ -1,0 +1,4 @@
+// Año actual para subdirectorio del campo doc_compr_pago (pagos/[glo_anio]/).
+// Los archivos de pagos se almacenan en sce/_lib/file/doc/pagos/YYYY/
+[glo_anio] = date("Y");
+error_log("grid_pagos_t onApplicationInit: glo_anio=" . date("Y"));
