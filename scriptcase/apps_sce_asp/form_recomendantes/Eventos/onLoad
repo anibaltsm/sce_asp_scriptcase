@@ -12,3 +12,10 @@
 if (isset($_SESSION['form_recomendantes_guardado_exitoso']) && $_SESSION['form_recomendantes_guardado_exitoso']) {
     unset($_SESSION['form_recomendantes_guardado_exitoso']);
 }
+
+// Mensaje específico tras MERGE (2 aspirantes agregaron al mismo recomendante)
+if (isset($_SESSION['form_recomendantes_merged_message_show']) && $_SESSION['form_recomendantes_merged_message_show'] !== '') {
+    $msg = $_SESSION['form_recomendantes_merged_message_show'];
+    unset($_SESSION['form_recomendantes_merged_message_show']);
+    echo '<script type="text/javascript">if (typeof sc_alert === "function") { sc_alert("' . addslashes($msg) . '"); } else { alert("' . addslashes($msg) . '"); }</script>';
+}

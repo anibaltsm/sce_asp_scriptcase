@@ -9,10 +9,11 @@
 // Flujo:
 //   1. id_recom vacío → return (carga de página)
 //   2. correo vacío  → error_message + return
-//   3. Duplicado (mismo correo en otro id_recom) → MERGE + correo notificación + return
-//   4. cc_edit = 0 (ya tiene usuario) → correo notificación + return
-//   5. Login ya existe en sec_asp_users → asignar grupo + correo notificación + return
+//   3. (MERGE duplicado se hace en form_recomendantes/onBeforeUpdate; si hubo MERGE, onAfterUpdate no llama aquí)
+//   4. Login ya existe en sec_asp_users → asignar grupo 7 + UPDATE login_FK/cc_edit=0 + correo notificación + return
+//   5. login_FK ya asignado y existe en sec_asp_users (ya tiene usuario) → correo notificación + return
 //   6. NUEVO: crear usuario, enviar correo bienvenida (con contraseña + activación)
+// Nota: 4 va antes que 5 para no depender de cc_edit (el formulario puede enviar cc_edit=0 y dar falso "ya registrado").
 //
 // Correo bienvenida  : se envía UNA sola vez, la primera vez que se crea el usuario.
 // Correo notificación: se envía cada vez que un aspirante lo agrega y ya tiene usuario.
@@ -25,7 +26,7 @@ $id_recom_val = trim((string)$id_recom);
 $nombre       = trim($nombre);
 $apellido_p   = trim($apellido_p);
 $apellido_m   = trim($apellido_m);
-$correo       = trim($correo);
+$correo       = $correo !== null ? trim((string)$correo) : '';
 
 // 1. Carga de página (no guardado real)
 if (empty($id_recom_val) || $id_recom_val === '' || $id_recom_val === '0') {
@@ -33,8 +34,8 @@ if (empty($id_recom_val) || $id_recom_val === '' || $id_recom_val === '0') {
     return;
 }
 
-// 2. Correo obligatorio
-if ($correo === '') {
+// 2. Correo obligatorio (incluye correo NULL o vacío; el aspirante debe llenarlo)
+if ($correo === '' || $correo === null) {
     error_log("crear_usuario_recomendante: ERROR correo vacío");
     sc_error_message("El correo del recomendante es obligatorio para crear el usuario de acceso.");
     return;
@@ -91,52 +92,17 @@ $msg_notificacion = '
 $asunto_notificacion = 'INECOL. Un aspirante lo ha agregado como recomendante';
 
 // -----------------------------------------------------------------------
-// 3. MERGE: duplicado (mismo correo ya existe en otro id_recom de recomendantes)
+// 3. MERGE: ya no se hace aquí. Cuando 2 aspirantes usan el mismo correo,
+//    el UPDATE fallaría por uk_correo_recom; el MERGE y el correo de notificación
+//    se hacen en form_recomendantes/Eventos/onBeforeUpdate y onAfterUpdate hace return.
+//    Este método solo se ejecuta cuando NO hubo MERGE (correo único en este guardado).
 // -----------------------------------------------------------------------
-sc_lookup(rs_dup, "SELECT id_recom FROM recomendantes WHERE correo = " . sc_sql_injection($correo) . " AND id_recom != " . sc_sql_injection($id_recom) . " ORDER BY id_recom ASC LIMIT 1");
-if (isset({rs_dup[0][0]})) {
-    $id_recom_canonico = (int){rs_dup[0][0]};
-    error_log("crear_usuario_recomendante: MERGE id_recom=$id_recom → canonico=$id_recom_canonico");
-    // La búsqueda de contexto (rs_ctx) se hizo antes del UPDATE, por eso el id_recom_FK aún es $id_recom
-    sc_exec_sql("UPDATE asp_recomendantes SET id_recom_FK = $id_recom_canonico WHERE id_recom_FK = " . sc_sql_injection($id_recom));
-    sc_exec_sql("DELETE FROM recomendantes WHERE id_recom = " . sc_sql_injection($id_recom));
-    sc_commit_trans();
-    error_log("crear_usuario_recomendante: MERGE OK");
-    // Notificar: el recomendante canónico ya tiene usuario; solo informarle del nuevo aspirante+doc
-    try {
-        @sc_mail_send($mail_smtp_server, $mail_smtp_user, $mail_smtp_pass, $mail_from,
-            $correo, $asunto_notificacion, $msg_notificacion, $mail_format, $mail_cc_admin, $mail_tp_copies,
-            $mail_port, $mail_tp_connection);
-        error_log("crear_usuario_recomendante: Correo notificacion (MERGE) enviado a $correo");
-    } catch (Exception $e) {
-        error_log("crear_usuario_recomendante: Error correo notificacion (MERGE): " . $e->getMessage());
-    }
-    return;
-}
-
-// -----------------------------------------------------------------------
-// 4. cc_edit = 0: ya tiene usuario creado (guardada previa lo procesó)
-// -----------------------------------------------------------------------
-sc_lookup(rs_cc, "SELECT cc_edit FROM recomendantes WHERE id_recom = " . sc_sql_injection($id_recom));
-$cc_edit = isset({rs_cc[0][0]}) ? trim({rs_cc[0][0]}) : 1;
-error_log("crear_usuario_recomendante: cc_edit=$cc_edit para id_recom=$id_recom");
-if ($cc_edit == 0 || $cc_edit === 'N') {
-    error_log("crear_usuario_recomendante: ya tiene usuario (cc_edit=0), enviando notificación");
-    try {
-        @sc_mail_send($mail_smtp_server, $mail_smtp_user, $mail_smtp_pass, $mail_from,
-            $correo, $asunto_notificacion, $msg_notificacion, $mail_format, $mail_cc_admin, $mail_tp_copies,
-            $mail_port, $mail_tp_connection);
-        error_log("crear_usuario_recomendante: Correo notificacion (cc_edit=0) enviado a $correo");
-    } catch (Exception $e) {
-        error_log("crear_usuario_recomendante: Error correo notificacion (cc_edit=0): " . $e->getMessage());
-    }
-    return;
-}
 
 $login = $correo;
 
 // -----------------------------------------------------------------------
-// 5. Login ya existe en sec_asp_users (ej. fue creado como aspirante u otro rol)
+// 4. Login ya existe en sec_asp_users (ej. aspirante u otro rol) — ANTES que cc_edit
+//    para no depender de cc_edit que el formulario puede sobrescribir con 0.
 // -----------------------------------------------------------------------
 sc_lookup(rs_usr, "SELECT login FROM sec_asp_users WHERE login = " . sc_sql_injection($login));
 if (isset({rs_usr[0][0]})) {
@@ -145,7 +111,7 @@ if (isset({rs_usr[0][0]})) {
     $upd = "UPDATE recomendantes SET login_FK = " . sc_sql_injection($login) . ", cc_edit = 0 WHERE id_recom = " . sc_sql_injection($id_recom);
     sc_exec_sql($upd);
     sc_commit_trans();
-    error_log("crear_usuario_recomendante: login ya existe, asignado grupo 7 y cc_edit=0; enviando notificación");
+    error_log("crear_usuario_recomendante: login ya existe en sec_asp_users, asignado grupo 7 y cc_edit=0; enviando notificación");
     try {
         @sc_mail_send($mail_smtp_server, $mail_smtp_user, $mail_smtp_pass, $mail_from,
             $correo, $asunto_notificacion, $msg_notificacion, $mail_format, $mail_cc_admin, $mail_tp_copies,
@@ -153,6 +119,35 @@ if (isset({rs_usr[0][0]})) {
         error_log("crear_usuario_recomendante: Correo notificacion (login existente) enviado a $correo");
     } catch (Exception $e) {
         error_log("crear_usuario_recomendante: Error correo notificacion (login existente): " . $e->getMessage());
+    }
+    return;
+}
+
+// -----------------------------------------------------------------------
+// 5. Ya tiene usuario creado (guardada previa): solo si login_FK = correo del recomendante.
+//    login_FK puede ser el aspirante (quien dio de alta); solo es "ya tiene usuario"
+//    cuando login_FK coincide con el correo del recomendante que estamos procesando.
+// -----------------------------------------------------------------------
+sc_lookup(rs_cc, "SELECT login_FK, cc_edit FROM recomendantes WHERE id_recom = " . sc_sql_injection($id_recom));
+$login_fk = isset({rs_cc[0][0]}) ? trim({rs_cc[0][0]}) : '';
+$cc_edit  = isset({rs_cc[0][1]}) ? trim({rs_cc[0][1]}) : 1;
+error_log("crear_usuario_recomendante: login_FK=$login_fk cc_edit=$cc_edit para id_recom=$id_recom");
+
+// Solo "ya tiene usuario" si login_FK es el correo del recomendante (no el del aspirante)
+$ya_tiene_usuario = ($login_fk !== '' && $login_fk !== '0' && $login_fk === $correo);
+if ($ya_tiene_usuario) {
+    sc_lookup(rs_ex, "SELECT 1 FROM sec_asp_users WHERE login = " . sc_sql_injection($login_fk));
+    $ya_tiene_usuario = isset({rs_ex[0][0]});
+}
+if ($ya_tiene_usuario) {
+    error_log("crear_usuario_recomendante: ya tiene usuario (login_FK verificado), enviando notificación");
+    try {
+        @sc_mail_send($mail_smtp_server, $mail_smtp_user, $mail_smtp_pass, $mail_from,
+            $correo, $asunto_notificacion, $msg_notificacion, $mail_format, $mail_cc_admin, $mail_tp_copies,
+            $mail_port, $mail_tp_connection);
+        error_log("crear_usuario_recomendante: Correo notificacion (ya tiene usuario) enviado a $correo");
+    } catch (Exception $e) {
+        error_log("crear_usuario_recomendante: Error correo notificacion (ya tiene usuario): " . $e->getMessage());
     }
     return;
 }

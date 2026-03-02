@@ -4,54 +4,46 @@ $update_sql = 'UPDATE sec_asp_users'
     . ' WHERE login = '. sc_sql_injection({login});
 sc_exec_sql($update_sql);
 
-$mail_to  = {email};
-$url_mess = "<a href='http://posgrados.inecol.mx/sce_asp/app_form_add_users/index.php?a=".$act_code."'>http://posgrados.inecol.mx/sce_asp/app_form_add_users/index.php?a=" . $act_code ." </a>";
-$mail_message='Apreciable <strong>'.{name}.' '.{apat}.' '.{amat}.'</strong><br><br>'
-             .'Los datos de preregistro capturados han sido guardados correctamente. Para ingresar al sistema es necesario '
-             .'actives tu registro dando clic en el siguiente enlace,o bien copia y pega en el navegador: <br><strong><u>'
-             .$url_mess.'</u></strong><br> <br>Tus datos de acceso son los siguientes:<br><br>Usuario:<strong> '
-             .{email}.'</strong><br>Contraseña:<strong>'
-             .{pswd}.'</strong><br><br>'
-             .'Para ingresar regresa a la venta principal del Subsistema de Aspirantes.<br><br>'
-             .'<strong>Por favor no retransmitas esta información a nadie más.</strong>'
-             .'<strong>Esta dirección de correo electrónico no puede recibir respuestas.</strong>';
-$asunto='INECOL. Registro al Subsistema de Aspirantes';
+$mail_to   = {email};
+$url_activacion = 'http://posgrados.inecol.mx/sce_asp/app_form_add_users/index.php?a=' . $act_code;
+$nom_esc   = htmlspecialchars(trim({name} . ' ' . {apat} . ' ' . {amat}));
+$login_esc = htmlspecialchars({email});
+$pswd_esc  = htmlspecialchars({pswd});
 
-// ⭐ LLAMADA DIRECTA A sc_mail_send (sin función intermedia)
+$mail_message = '
+<table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; font-family: \'Segoe UI\', Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #2c2c2c;">
+  <tr><td style="background: #1e4d7b; padding: 18px 24px; text-align: center;"><span style="color: #fff; font-size: 16px; font-weight: 600;">Instituto de Ecología A.C.</span><br><span style="color: #b8d4e8; font-size: 12px;">Subsistema de Aspirantes al Posgrado</span></td></tr>
+  <tr><td style="padding: 28px 24px; border: 1px solid #e0e4e8; border-top: none; background: #fff;">
+    <p style="margin: 0 0 1.25em;">Estimado(a) <strong>' . $nom_esc . '</strong>:</p>
+    <p style="margin: 0 0 1.25em;">Por medio del presente, le informamos que se ha generado su usuario de acceso al Subsistema de Aspirantes al Posgrado del INECOL. Los datos de preregistro capturados han sido guardados correctamente.</p>
+    <p style="margin: 0 0 0.75em;">Para ingresar al sistema, es necesario que active su registro haciendo clic en el siguiente enlace:</p>
+    <p style="margin: 0 0 1em;"><a href="' . $url_activacion . '" style="display: inline-block; padding: 10px 18px; background: #1e4d7b; color: #fff !important; text-decoration: none; border-radius: 4px; font-weight: 600;">Haga clic aquí para activar su cuenta</a></p>
+    <p style="margin: 0 0 0.35em; font-size: 12px; color: #555;">Si el enlace no funciona, copie y pegue la siguiente dirección en la barra de su navegador:</p>
+    <p style="margin: 0 0 1.5em; padding: 10px 12px; background: #f5f7f9; border-left: 4px solid #1e4d7b; border-radius: 2px; font-size: 12px; word-break: break-all; color: #444;">' . $url_activacion . '</p>
+    <p style="margin: 0 0 0.5em; font-size: 13px; color: #333; font-weight: 600;">Datos de acceso:</p>
+    <table cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin: 0 0 1.5em; border: 1px solid #dee2e6; border-radius: 4px; background: #fafbfc;">
+      <tr><td style="padding: 12px 14px; border-bottom: 1px solid #eee; color: #555; width: 120px;">Usuario</td><td style="padding: 12px 14px; border-bottom: 1px solid #eee;"><strong>' . $login_esc . '</strong></td></tr>
+      <tr><td style="padding: 12px 14px; color: #555;">Contraseña</td><td style="padding: 12px 14px;"><strong>' . $pswd_esc . '</strong></td></tr>
+    </table>
+    <p style="margin: 0 0 1.25em;">Tras completar la activación, podrá acceder al Subsistema de Aspirantes al Posgrado del INECOL para continuar con su proceso de admisión.</p>
+    <p style="margin: 0 0 1em; font-size: 12px; color: #666;">Por favor no comparta esta información con nadie más.</p>
+  </td></tr>
+  <tr><td style="padding: 16px 24px; background: #f5f7f9; border: 1px solid #e0e4e8; border-top: 1px solid #dee2e6; font-size: 11px; color: #666;">Esta dirección de correo electrónico no recibe respuestas.</td></tr>
+  <tr><td style="padding: 14px 24px; background: #fff; border: 1px solid #e0e4e8; border-top: none; font-size: 12px; color: #444;">Atentamente,<br><strong>Instituto de Ecología A.C.</strong><br>Sistema de Control Escolar – Posgrado</td></tr>
+</table>';
+
+$asunto = 'INECOL. Registro al Subsistema de Aspirantes al Posgrado';
+$mail_cc_admin = 'monica.enriquez@inecol.mx; anibal.sanchez@inecol.mx';
+
 try {
-    $mail_smtp_server    = 'smtp.gmail.com';
-    $mail_smtp_user      = 'sce.posgrado@gmail.com';
-    $mail_smtp_pass      = 'fqczuzvfomytleda';
-    $mail_from           = 'sce.posgrado@gmail.com';
-    $mail_copies         = 'monica.enriquez@inecol.mx';
-    $mail_format         = 'H';
-    $mail_tp_copies      = 'CCC';
-    $mail_port           = '465';
-    $mail_tp_connection  = 'S';
-    
-    @sc_mail_send($mail_smtp_server,
-                 $mail_smtp_user,
-                 $mail_smtp_pass,
-                 $mail_from,
-                 $mail_to,
-                 $asunto,
-                 $mail_message,
-                 $mail_format,
-                 $mail_copies,
-                 $mail_tp_copies,
-                 $mail_port,
-                 $mail_tp_connection);
-    
-    sc_commit_trans();
-    
+    envia_email($mail_to, $asunto, $mail_message, $mail_cc_admin);
     if({sc_mail_ok}){
         sc_log_add("Send active code", {lang_sended_active_code});
     } else {
         sc_log_add("Email warning", "Email could not be sent");
     }
-    
 } catch (Exception $e) {
-    error_log("Error email: " . $e->getMessage());
+    error_log("app_form_add_users send_mail_to_new_user: " . $e->getMessage());
     sc_log_add("Email failed", "Error: " . $e->getMessage());
 }
 

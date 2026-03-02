@@ -9,6 +9,19 @@
 //       cargar la página con datos vacíos. Por eso validamos id_recom y correo.
 // ====================================================================
 
+// Si en OnBeforeUpdate se hizo MERGE (mismo correo en otro recomendante), no crear usuario
+if (isset($_SESSION['form_recomendantes_merged']) && $_SESSION['form_recomendantes_merged']) {
+    unset($_SESSION['form_recomendantes_merged']);
+    $_SESSION['form_recomendantes_guardado_exitoso'] = true;
+    $_SESSION['form_recomendantes_need_reload'] = true;
+    if (isset($_SESSION['form_recomendantes_merged_message'])) {
+        $_SESSION['form_recomendantes_merged_message_show'] = $_SESSION['form_recomendantes_merged_message'];
+        unset($_SESSION['form_recomendantes_merged_message']);
+    }
+    error_log("💾 form_recomendantes onAfterUpdate: SKIP - fue MERGE (correo ya en otro recomendante)");
+    return;
+}
+
 // VALIDACIÓN CRÍTICA: Solo ejecutar si hay id_recom y correo válidos
 $id_recom_val = trim({id_recom});
 $correo_val = trim({correo});

@@ -2,7 +2,7 @@
 // Evento: OnBeforeUpdate
 // Scriptcase: v9 | PHP 8.1
 // Documentación: https://www.scriptcase.net/docs/en_us/v9/manual/06-applications/05-form-application/18-form-events/
-// Macros usados: sc_confirm, sc_lookup, sc_sql_injection, sc_error_message
+// Macros usados: sc_confirm, sc_lookup, sc_sql_injection, sc_error_message, sc_exec_sql, sc_commit_trans
 // Fuente: https://www.scriptcase.net/docs/en_us/v9/manual/14-macros/02-macros/
 // ====================================================================
 // NOTA: sc_confirm() NO usa if/return. Si usuario cancela, Scriptcase detiene
@@ -17,5 +17,76 @@ sc_lookup(rs, "SELECT cc_edit FROM recomendantes WHERE id_recom = " . sc_sql_inj
 $cc = isset({rs[0][0]}) ? trim({rs[0][0]}) : 1;
 if ($cc == 0 || $cc === 'N') {
     sc_error_message("Este recomendante ya tiene usuario de acceso para subir cartas. No se puede editar.");
+    exit;
+}
+
+// 3. MERGE anticipado: si el correo ya existe en OTRO recomendante (otro aspirante), reasignar
+//    y borrar esta fila ANTES de que ScriptCase ejecute el UPDATE (evita "Duplicate entry" uk_correo_recom).
+$id_recom_cur = trim({id_recom});
+$correo_new   = trim({correo});
+sc_lookup(rs_dup, "SELECT id_recom FROM recomendantes WHERE correo = " . sc_sql_injection($correo_new) . " AND id_recom != " . sc_sql_injection($id_recom_cur) . " ORDER BY id_recom ASC LIMIT 1");
+if (isset({rs_dup[0][0]})) {
+    $id_recom_canonico = (int){rs_dup[0][0]};
+    error_log("form_recomendantes OnBeforeUpdate: MERGE id_recom=$id_recom_cur -> canonico=$id_recom_canonico (correo ya usado por otro recomendante)");
+
+    // Contexto para el correo (aspirante que está guardando, desde asp_recomendantes antes de cambiar)
+    $_ctx_nom_asp = '';
+    $_ctx_leyenda = '';
+    sc_lookup(rs_ctx, "SELECT ar.id_asp_FK, ar.num_req FROM asp_recomendantes ar WHERE ar.id_recom_FK = " . sc_sql_injection($id_recom_cur) . " LIMIT 1");
+    if (isset({rs_ctx[0][0]}) && isset({rs_ctx[0][1]})) {
+        $_ctx_id_asp  = trim({rs_ctx[0][0]});
+        $_ctx_num_req = trim({rs_ctx[0][1]});
+        sc_lookup(rs_asp, "SELECT nombres, ap_pat, ap_mat FROM aspirantes WHERE id_asp = " . sc_sql_injection($_ctx_id_asp));
+        if (isset({rs_asp[0][0]})) {
+            $_ctx_nom_asp = htmlspecialchars(trim(trim({rs_asp[0][0]}) . ' ' . trim({rs_asp[0][1]}) . ' ' . trim({rs_asp[0][2]})));
+        }
+        sc_lookup(rs_ley, "SELECT leyenda FROM sce.list_req_gral WHERE num_requisito = " . sc_sql_injection($_ctx_num_req) . " AND cc_carta = 1 LIMIT 1");
+        if (isset({rs_ley[0][0]})) {
+            $_ctx_leyenda = htmlspecialchars(trim({rs_ley[0][0]}));
+        }
+    }
+
+    sc_exec_sql("UPDATE asp_recomendantes SET id_recom_FK = $id_recom_canonico WHERE id_recom_FK = " . sc_sql_injection($id_recom_cur));
+    sc_exec_sql("DELETE FROM recomendantes WHERE id_recom = " . sc_sql_injection($id_recom_cur));
+    sc_commit_trans();
+
+    $url_login = 'http://posgrados.inecol.mx/sce_asp/aspirantes/';
+    $_nom_recom = htmlspecialchars(trim({nombre} . ' ' . {apellido_p} . ' ' . {apellido_m}));
+    $msg_notif = '
+<table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; font-family: \'Segoe UI\', Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #2c2c2c;">
+  <tr><td style="background: #1e4d7b; padding: 18px 24px; text-align: center;"><span style="color: #fff; font-size: 16px; font-weight: 600;">Instituto de Ecología A.C.</span><br><span style="color: #b8d4e8; font-size: 12px;">Subsistema de Aspirantes al Posgrado</span></td></tr>
+  <tr><td style="padding: 28px 24px; border: 1px solid #e0e4e8; border-top: none; background: #fff;">
+    <p style="margin: 0 0 1.25em;">Estimado(a) <strong>' . $_nom_recom . '</strong>:</p>
+    <p style="margin: 0 0 1.25em;">Le informamos que el/la aspirante <strong>' . $_ctx_nom_asp . '</strong> lo/la ha registrado como recomendante en el proceso de admisión al posgrado del INECOL y requiere que usted cargue el siguiente documento: <strong>' . $_ctx_leyenda . '</strong>.</p>
+    <p style="margin: 0 0 0.75em;">Puede ingresar al sistema con su usuario y contraseña ya registrados:</p>
+    <p style="margin: 0 0 1.25em;"><a href="' . $url_login . '" style="display: inline-block; padding: 10px 18px; background: #1e4d7b; color: #fff !important; text-decoration: none; border-radius: 4px; font-weight: 600;">Acceder al sistema</a></p>
+  </td></tr>
+  <tr><td style="padding: 16px 24px; background: #f5f7f9; border: 1px solid #e0e4e8; border-top: 1px solid #dee2e6; font-size: 11px; color: #666;">Esta dirección de correo electrónico no recibe respuestas.</td></tr>
+  <tr><td style="padding: 14px 24px; background: #fff; border: 1px solid #e0e4e8; border-top: none; font-size: 12px; color: #444;">Atentamente,<br><strong>Instituto de Ecología A.C.</strong><br>Sistema de Control Escolar – Posgrado</td></tr>
+</table>';
+    $mail_smtp_server   = 'smtp.office365.com';
+    $mail_smtp_user     = 'sce.posgrado@inecol.mx';
+    $mail_smtp_pass     = '5C3.P0sgr4d0';
+    $mail_from          = 'sce.posgrado@inecol.mx';
+    $mail_cc_admin      = 'anibal.sanchez@inecol.mx';
+    $mail_format        = 'H';
+    $mail_tp_copies     = 'CCC';
+    $mail_port          = '587';
+    $mail_tp_connection = 'T';
+    try {
+        @sc_mail_send($mail_smtp_server, $mail_smtp_user, $mail_smtp_pass, $mail_from,
+            $correo_new, 'INECOL. Un aspirante lo ha agregado como recomendante', $msg_notif, $mail_format, $mail_cc_admin, $mail_tp_copies,
+            $mail_port, $mail_tp_connection);
+        error_log("form_recomendantes OnBeforeUpdate: Correo notificación (MERGE) enviado a $correo_new");
+    } catch (Exception $e) {
+        error_log("form_recomendantes OnBeforeUpdate: Error correo MERGE: " . $e->getMessage());
+    }
+
+    $_SESSION['form_recomendantes_merged'] = true;
+    $_SESSION['form_recomendantes_merged_message'] = 'Este correo ya está registrado como recomendante. Se ha vinculado a su solicitud y se notificó al recomendante.';
+    $_SESSION['form_recomendantes_merged_message_show'] = 'Este correo ya está registrado como recomendante. Se ha vinculado a su solicitud y se notificó al recomendante.';
+    $_SESSION['form_recomendantes_need_reload'] = true;
+    // Redirigir para evitar que ScriptCase ejecute UPDATE sobre la fila ya borrada (evita "Fila no encontrada")
+    sc_redir('form_recomendantes');
     exit;
 }

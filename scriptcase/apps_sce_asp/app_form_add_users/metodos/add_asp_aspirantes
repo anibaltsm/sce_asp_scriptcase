@@ -91,8 +91,8 @@ for ($r = 0; $r < 3; $r++) {
     $id_recom_actual = $next_id_recom + $r;
     $num_req_val = $num_req_carta[$r];
     
-    $ins_recom = "INSERT INTO recomendantes (id_recom, nombre, apellido_p, apellido_m, correo, num_recom, login_FK)
-                  VALUES (".$id_recom_actual.", NULL, NULL, NULL, NULL, ".($r + 1).", ".sc_sql_injection($login).")";
+    $ins_recom = "INSERT INTO recomendantes (id_recom, nombre, apellido_p, apellido_m, correo, num_recom, login_FK, cc_edit)
+                  VALUES (".$id_recom_actual.", NULL, NULL, NULL, NULL, ".($r + 1).", ".sc_sql_injection($login).", 1)";
     sc_exec_sql($ins_recom);
     
     $ins_asp_recom = "INSERT INTO asp_recomendantes (id_asp_FK, id_recom_FK, num_req)
