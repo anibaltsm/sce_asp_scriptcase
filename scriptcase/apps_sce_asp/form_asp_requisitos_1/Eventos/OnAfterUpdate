@@ -1,15 +1,16 @@
 // ---------------------------------------------------------------------------
 // Evento: OnAfterUpdate
-// Renombra el archivo subido en cartas/[generacion]/ con nomenclatura estándar
-// y lo copia a aspirantes/[generacion]/[correo_aspirante]/.
-// Actualiza asp_requisitos.archivo con el nombre final en BD.
+// Localiza el archivo subido, lo renombra con nomenclatura estándar y lo copia
+// a la carpeta del aspirante. Actualiza asp_requisitos.archivo en BD.
 //
-// Rutas (usa DOCUMENT_ROOT — funciona en macOS, Linux y Windows):
-//   Origen:  .../doc/cartas/[generacion]/            ← ScriptCase deposita el archivo aquí
-//   Destino: .../doc/aspirantes/[generacion]/[login_FK del registro]/
+// Rutas (usa DOCUMENT_ROOT):
+//   ScriptCase deposita: cartas/[generacion]/[usr_login]/   ← usuario logueado
+//   Destino renombrado : cartas/[generacion]/[correo_asp]/  ← login_FK del registro
+//   Copia para descarga: cartas/[generacion]/[usr_login]/   ← copiado de vuelta
+//   Copia de consulta  : aspirantes/[generacion]/[correo_asp]/
 //
-// Correo del aspirante: campo {login_FK} del registro de asp_requisitos.
-//   NO se usa [usr_login] porque ese es el usuario logueado (puede ser el recomendante).
+// {login_FK} = correo del aspirante al que pertenece el requisito.
+// [usr_login] = usuario logueado (puede ser recomendante ≠ aspirante).
 //
 // Nombre final: generacion_id_asp_num_req_prefijo.ext  (ej. 2026_1281_11_carta_opinion.pdf)
 // Logs: ver README_LOGS.md en la raíz del proyecto.
@@ -44,12 +45,13 @@ if ($prefijo_req === '') {
 error_log("form_asp_requisitos_1 OnAfterUpdate: id_asp=".$id_asp." num_req=".$num_req_short." prefijo=".$prefijo_req." correo_asp=".$correo_asp." ext=".$ext);
 
 // PASO 5: Rutas
-// Si el subdirectorio en ScriptCase es cartas/[generacion]/[usr_login], el archivo está en ruta_cartas_usr.
-// Si es solo cartas/[generacion], está en ruta_cartas_plano. Buscamos en ambas.
-// aspirantes/[generacion]/[correo_asp]/ → copia final (por login_FK del registro, no usr_login)
+// ruta_cartas_plano : cartas/[generacion]/             → directorio base (depósito plano)
+// ruta_cartas_usr   : cartas/[generacion]/[usr_login]/ → donde ScriptCase deposita el archivo
+//                     cuando el subdirectorio del campo incluye [usr_login]
+// ruta_cartas_asp   : cartas/[generacion]/[correo_asp]/ → destino final del archivo renombrado
+// ruta_destino      : aspirantes/[generacion]/[correo_asp]/ → copia de consulta
 $ruta_cartas_plano = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/cartas/".[generacion]."/";
-$usr_login         = trim([usr_login]);
-$ruta_cartas_usr   = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/cartas/".[generacion]."/".$usr_login."/";
+$ruta_cartas_usr   = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/cartas/".[generacion]."/".[usr_login]."/";
 $ruta_cartas_asp   = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/cartas/".[generacion]."/".$correo_asp."/";
 $ruta_destino      = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/aspirantes/".[generacion]."/".$correo_asp."/";
 error_log("form_asp_requisitos_1 OnAfterUpdate: ruta_cartas_plano=".$ruta_cartas_plano." ruta_cartas_usr=".$ruta_cartas_usr." ruta_cartas_asp=".$ruta_cartas_asp);
@@ -59,30 +61,42 @@ error_log("form_asp_requisitos_1 OnAfterUpdate: ruta_cartas_plano=".$ruta_cartas
 $nombre_pdf = [generacion]."_".$id_asp."_".$num_req_short."_".$prefijo_req.".".$ext;
 error_log("form_asp_requisitos_1 OnAfterUpdate: nombre_pdf=".$nombre_pdf." destino=".$ruta_destino);
 
-// PASO 7: Localizar el archivo. ScriptCase puede subirlo en:
-//   - cartas/[generacion]/           (subdirectorio = cartas/[generacion])
-//   - cartas/[generacion]/[usr_login]/ (subdirectorio = cartas/[generacion]/[usr_login])
-// Se hacen hasta 3 intentos (1s entre cada uno) por si ScriptCase escribe el archivo justo después del evento.
-$archivo_origen = null;
-$rutas_buscar = array($ruta_cartas_plano);
-if ($usr_login !== '' && $ruta_cartas_usr !== $ruta_cartas_plano) {
-	$rutas_buscar[] = $ruta_cartas_usr;
+// PASO 6b: Skip si el archivo ya fue procesado en este mismo registro
+// Sucede cuando el usuario guarda el formulario sin subir un archivo nuevo.
+// El campo {archivo} ya contiene el nombre renombrado y el fichero está en su lugar.
+if ({archivo} === $nombre_pdf && file_exists($ruta_cartas_asp . $nombre_pdf)) {
+	error_log("form_asp_requisitos_1 OnAfterUpdate: SKIP - archivo ya procesado ".$nombre_pdf);
+	return;
 }
+
+// PASO 7: Localizar el archivo subido.
+// ScriptCase puede depositarlo en distintas rutas según la configuración del campo:
+//   a) ruta_cartas_usr : cartas/[generacion]/[usr_login]/  (subdirectorio con login — caso habitual)
+//   b) ruta_cartas_plano: cartas/[generacion]/              (sin subcarpeta)
+// Se busca primero por nombre exacto en cada ruta y luego el archivo más reciente (< 90 s).
+$archivo_origen = null;
 for ($i = 0; $i < 3; $i++) {
 	if ($i > 0) { sleep(1); }
-	foreach ($rutas_buscar as $ruta) {
-		$candidato = $ruta . $nombre_original;
-		if (file_exists($candidato)) {
-			$archivo_origen = $candidato;
-			break 2;
-		}
-	}
-	// Si no existe con nombre exacto, buscar el archivo más reciente (< 90 s) en cualquiera de las carpetas
-	$hace_90 = time() - 90;
+
+	// 1. Nombre exacto en la subcarpeta del usuario logueado (ruta más frecuente)
+	$candidato_usr = $ruta_cartas_usr . $nombre_original;
+	if (file_exists($candidato_usr)) { $archivo_origen = $candidato_usr; break; }
+
+	// 2. Nombre exacto en el directorio base plano
+	$candidato = $ruta_cartas_plano . $nombre_original;
+	if (file_exists($candidato)) { $archivo_origen = $candidato; break; }
+
+	// 3. Nombre exacto en la subcarpeta del aspirante (por si ya fue movido parcialmente)
+	$candidato_asp = $ruta_cartas_asp . $nombre_original;
+	if (file_exists($candidato_asp)) { $archivo_origen = $candidato_asp; break; }
+
+	// 4. Archivo más reciente (< 90 s) en cualquiera de los tres directorios
+	$hace_90  = time() - 90;
 	$reciente = null;
-	foreach ($rutas_buscar as $ruta) {
-		if (!is_dir($ruta)) continue;
-		foreach (new DirectoryIterator($ruta) as $f) {
+	$dirs_buscar = array_unique([$ruta_cartas_usr, $ruta_cartas_plano, $ruta_cartas_asp]);
+	foreach ($dirs_buscar as $_dir) {
+		if (!is_dir($_dir)) continue;
+		foreach (new DirectoryIterator($_dir) as $f) {
 			if ($f->isDot() || !$f->isFile() || strtolower($f->getExtension()) !== $ext) continue;
 			if ($f->getMTime() < $hace_90) continue;
 			if ($reciente === null || $f->getMTime() > $reciente['mtime']) {
@@ -90,28 +104,59 @@ for ($i = 0; $i < 3; $i++) {
 			}
 		}
 	}
-	if ($reciente !== null) {
-		$archivo_origen = $reciente['path'];
-		break;
-	}
+	if ($reciente !== null) { $archivo_origen = $reciente['path']; break; }
 }
 
 if ($archivo_origen === null || !file_exists($archivo_origen)) {
-	error_log("form_asp_requisitos_1 OnAfterUpdate: ERROR no se encontró el archivo en ".$ruta_cartas_plano." ni en ".$ruta_cartas_usr." buscado=".$nombre_original);
+	error_log("form_asp_requisitos_1 OnAfterUpdate: ERROR no se encontró el archivo en ".$ruta_cartas_plano." buscado=".$nombre_original);
 	sc_error_message("No se encontró el archivo subido en la carpeta de carga. Intenta de nuevo.");
 	return;
 }
 error_log("form_asp_requisitos_1 OnAfterUpdate: archivo encontrado -> ".basename($archivo_origen));
 
-// PASO 8: Crear cartas/[generacion]/[correo_asp]/ si no existe y mover ahí el archivo renombrado
+// PASO 8: Copiar (NO renombrar) el archivo al nombre estandarizado en ruta_cartas_asp.
+// Se usa copy() en lugar de rename() para que el archivo con nombre hasheado de ScriptCase
+// (ej. archivo_abc123.pdf) permanezca en su ubicación original.
+// ScriptCase genera la URL de descarga con ese hash ANTES de que OnAfterUpdate corra,
+// por lo que si se renombra/mueve ese archivo la descarga inmediata falla con 404.
 if (!is_dir($ruta_cartas_asp)) {
-	$ok_cartas = @mkdir($ruta_cartas_asp, 0755, true);
+	$ok_cartas = @mkdir($ruta_cartas_asp, 0775, true);
 	if (!$ok_cartas) { error_log("form_asp_requisitos_1 OnAfterUpdate: ERROR no se pudo crear carpeta ".$ruta_cartas_asp); }
 	else             { error_log("form_asp_requisitos_1 OnAfterUpdate: carpeta cartas creada ".$ruta_cartas_asp); }
 }
 $archivo_renombrado = $ruta_cartas_asp . $nombre_pdf;
-rename($archivo_origen, $archivo_renombrado);
-error_log("form_asp_requisitos_1 OnAfterUpdate: rename OK en cartas/".$correo_asp."/ -> ".$nombre_pdf);
+$ok_paso8 = @copy($archivo_origen, $archivo_renombrado);
+if (!$ok_paso8) {
+	error_log("form_asp_requisitos_1 OnAfterUpdate: ERROR copy PASO8 falló origen=".$archivo_origen." destino=".$archivo_renombrado);
+	sc_error_message("No se pudo procesar el archivo subido. Intenta de nuevo.");
+	return;
+}
+error_log("form_asp_requisitos_1 OnAfterUpdate: copy OK en cartas/".$correo_asp."/ -> ".$nombre_pdf);
+
+// PASO 8b: Si el uploader es distinto al aspirante (ej. recomendante), copiar también
+// el nombre estandarizado a ruta_cartas_usr. Así, cuando la página recarga y el link de
+// descarga ya apunta al nombre estandarizado (de la BD actualizada), ScriptCase lo encuentra
+// independientemente de quién esté logueado.
+if (rtrim($ruta_cartas_usr, '/') !== rtrim($ruta_cartas_asp, '/')) {
+	if (!is_dir($ruta_cartas_usr)) { @mkdir($ruta_cartas_usr, 0775, true); }
+	$ok_usr_copy = @copy($archivo_renombrado, $ruta_cartas_usr . $nombre_pdf);
+	if ($ok_usr_copy) {
+		error_log("form_asp_requisitos_1 OnAfterUpdate: copia descarga usr -> ".$ruta_cartas_usr.$nombre_pdf);
+	} else {
+		error_log("form_asp_requisitos_1 OnAfterUpdate: WARN no se pudo copiar a ruta_cartas_usr -> ".$ruta_cartas_usr.$nombre_pdf);
+	}
+}
+
+// PASO 8c: Borrar el archivo original (nombre del usuario o hash de ScriptCase) para no dejar residuos
+// en la carpeta del usuario (ej. "power-skills (1).pdf"). La descarga usa ya el nombre estandarizado en BD.
+if (file_exists($archivo_origen) && basename($archivo_origen) !== $nombre_pdf) {
+	$ok_del = @unlink($archivo_origen);
+	if ($ok_del) {
+		error_log("form_asp_requisitos_1 OnAfterUpdate: residuo eliminado ".basename($archivo_origen));
+	} else {
+		error_log("form_asp_requisitos_1 OnAfterUpdate: WARN no se pudo eliminar residuo ".$archivo_origen);
+	}
+}
 
 // PASO 9: Crear carpeta del aspirante en aspirantes/[generacion]/[correo_asp]/ si no existe
 // La carpeta aspirantes/[generacion]/ debe ser escribible por el usuario del servidor web (ej. daemon).
@@ -141,21 +186,24 @@ if (!$ok_copy) {
 }
 error_log("form_asp_requisitos_1 OnAfterUpdate: copy OK -> ".$nombre_pdf." en aspirantes/".$correo_asp."/");
 
-// PASO 11: Actualizar campo archivo en asp_requisitos con el nombre final
+// PASO 11: Actualizar campo archivo en asp_requisitos con el nombre final.
+// También se asigna {archivo} = $nombre_pdf para que ScriptCase use el nombre renombrado
+// como valor del campo en memoria y no lo sobrescriba con el nombre original al refrescar.
 sc_exec_sql("UPDATE sce_asp.asp_requisitos SET archivo='".addslashes($nombre_pdf)."' WHERE id_asp_req=".{id_asp_req});
-error_log("form_asp_requisitos_1 OnAfterUpdate: FIN - asp_requisitos actualizado id_asp_req=".{id_asp_req});
+{archivo} = $nombre_pdf;
+error_log("form_asp_requisitos_1 OnAfterUpdate: FIN - asp_requisitos actualizado id_asp_req=".{id_asp_req}." archivo=".$nombre_pdf);
 
 // PASO 12: Correo de confirmación de carga del documento
-// TO: aspirante | CC: recomendante vinculado a este requisito + anibal.sanchez@inecol.mx + nancy.resendiz@inecol.mx (asistente de ventanilla)
+// TO: aspirante | CC: recomendante vinculado a este requisito + anibal.sanchez@inecol.mx
 // ----------------------------------------------------------------------------
 $_m_smtp     = 'smtp.office365.com';
 $_m_user     = 'sce.posgrado@inecol.mx';
 $_m_pass     = '5C3.P0sgr4d0';
 $_m_from     = 'sce.posgrado@inecol.mx';
 $_m_admin    = 'anibal.sanchez@inecol.mx';
-$_m_ventanilla = 'nancy.resendiz@inecol.mx';  // Asistente de ventanilla
 $_m_port     = '587';
 $_m_conn     = 'T';
+$_m_fecha    = date('d/m/Y') . ' a las ' . date('H:i') . ' h';
 
 // Nombre completo del aspirante
 $_m_nom_asp = '';
@@ -182,9 +230,9 @@ if (isset({rs_m_recom[0][0]})) {
 
 // Intentar un solo correo TO aspirante con CC a recomendante + admin usando ";" como separador.
 // Si sc_mail_send rechaza varios CC (RFC 2822), en logs se verá el error y se puede volver a 2 llamadas.
-$_m_cc = $_m_admin . ';' . $_m_ventanilla;
+$_m_cc = $_m_admin;
 if ($_m_correo_recom !== '' && $_m_correo_recom !== $correo_asp) {
-	$_m_cc = $_m_correo_recom . ';' . $_m_admin . ';' . $_m_ventanilla;
+	$_m_cc = $_m_correo_recom . ';' . $_m_admin;
 }
 error_log("form_asp_requisitos_1 OnAfterUpdate: CC string (separador ;) = " . $_m_cc);
 
@@ -222,6 +270,8 @@ $_m_body = '
     <td style="padding: 30px 28px; background: #ffffff; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb;">
 
       <p style="margin: 0 0 14px; font-size: 15px; color: #1f2937; line-height: 1.5;">Por medio del presente se le informa que el documento que se detalla a continuación ha sido <strong>cargado correctamente</strong> en el Subsistema de Aspirantes al Posgrado del INECOL y será <strong>revisado por la instancia correspondiente</strong> en el marco del proceso de admisión.</p>
+      <p style="margin: 0 0 24px; font-size: 13px; color: #6b7280;">Fecha y hora de carga: ' . $_m_fecha . '</p>
+
       <!-- TABLA DE DETALLES -->
       <table cellpadding="0" cellspacing="0" border="0" style="width: 100%; border: 1px solid #e5e7eb; border-radius: 6px; border-collapse: separate; border-spacing: 0; overflow: hidden; margin: 0 0 24px;">
         <tr style="background: #f8fafc;">

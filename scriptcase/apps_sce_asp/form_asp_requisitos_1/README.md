@@ -32,14 +32,13 @@ Sigue el mismo patrón que `chg_filename` en `form_pagos`.
 
 ## Configuración del campo `archivo` en ScriptCase
 
-**Subdirectorio para almacenamiento local:** `cartas/[generacion]` o `cartas/[generacion]/[usr_login]`
+**Subdirectorio para almacenamiento local:** `cartas/[generacion]`
 
-- Si usas solo `cartas/[generacion]`, ScriptCase deposita el archivo en esa carpeta.
-- Si usas `cartas/[generacion]/[usr_login]`, ScriptCase crea una subcarpeta por usuario logueado. En ese caso, `OnAfterUpdate` busca el archivo en ambas rutas (plano y con `[usr_login]`) para localizarlo antes de moverlo a aspirantes.
+ScriptCase crea la carpeta `cartas/[generacion]/` automáticamente y deposita el archivo subido ahí.
+La subcarpeta por aspirante (`aspirantes/[generacion]/[correo_asp]/`) la crea `OnAfterUpdate` en el código.
 
-La carpeta final por aspirante (`aspirantes/[generacion]/[correo_asp]/`) la crea `OnAfterUpdate` usando siempre `login_FK` del registro (correo del aspirante), no el usuario logueado.
-
-> Si el formulario lo usa el aspirante (mismo usuario que el registro), `[usr_login]` y `login_FK` coinciden. Si un recomendante u otro rol edita el registro, el archivo se busca en `cartas/[generacion]/[usr_login]/` y la copia final sigue en `aspirantes/[generacion]/[login_FK]/`.
+> **Importante:** NO usar `[usr_login]` en el subdirectorio porque ese es el usuario logueado,
+> que puede ser el recomendante u otro rol. El correo del aspirante se lee de `{login_FK}` del registro.
 
 ## Eventos
 
