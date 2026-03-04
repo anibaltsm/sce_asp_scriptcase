@@ -32,13 +32,14 @@ Sigue el mismo patrón que `chg_filename` en `form_pagos`.
 
 ## Configuración del campo `archivo` en ScriptCase
 
-**Subdirectorio para almacenamiento local:** `cartas/[generacion]`
+**Subdirectorio para almacenamiento local:** `cartas/[generacion]` o `cartas/[generacion]/[usr_login]`
 
-ScriptCase crea la carpeta `cartas/[generacion]/` automáticamente y deposita el archivo subido ahí.
-La subcarpeta por aspirante (`aspirantes/[generacion]/[correo_asp]/`) la crea `OnAfterUpdate` en el código.
+- Si usas solo `cartas/[generacion]`, ScriptCase deposita el archivo en esa carpeta.
+- Si usas `cartas/[generacion]/[usr_login]`, ScriptCase crea una subcarpeta por usuario logueado. En ese caso, `OnAfterUpdate` busca el archivo en ambas rutas (plano y con `[usr_login]`) para localizarlo antes de moverlo a aspirantes.
 
-> **Importante:** NO usar `[usr_login]` en el subdirectorio porque ese es el usuario logueado,
-> que puede ser el recomendante u otro rol. El correo del aspirante se lee de `{login_FK}` del registro.
+La carpeta final por aspirante (`aspirantes/[generacion]/[correo_asp]/`) la crea `OnAfterUpdate` usando siempre `login_FK` del registro (correo del aspirante), no el usuario logueado.
+
+> Si el formulario lo usa el aspirante (mismo usuario que el registro), `[usr_login]` y `login_FK` coinciden. Si un recomendante u otro rol edita el registro, el archivo se busca en `cartas/[generacion]/[usr_login]/` y la copia final sigue en `aspirantes/[generacion]/[login_FK]/`.
 
 ## Eventos
 
@@ -53,6 +54,30 @@ Crea la carpeta `cartas/` si no existe (solo necesario con Opción A). Con Opci�
 5. Crea la carpeta destino en `aspirantes/` si no existe (multiplataforma con `mkdir` de PHP).
 6. **Mueve** el archivo de `cartas/` a `aspirantes/[generacion]/[usr_login]/`.
 7. Actualiza `asp_requisitos.archivo` con el nombre final.
+
+---
+
+## Permisos: "No se pudo copiar el archivo a la carpeta del aspirante"
+
+Si un **recomendante** (o el aspirante) sube un archivo y aparece ese error, el log suele mostrar:
+`ERROR no se pudo crear carpeta .../aspirantes/2026/correo@ejemplo.com/`.  
+La causa es que la carpeta `aspirantes/[generacion]/` (ej. `aspirantes/2026`) no es **escribible** por el usuario del servidor web (en LAMPP/ScriptCase suele ser **daemon**).
+
+**Solución:** dar permisos de escritura al grupo del servidor en la carpeta de la generación:
+
+```bash
+# Sustituir 2026 por la generación activa si es distinta
+sudo chmod 0775 /opt/lampp/htdocs/sce_asp/_lib/file/doc/aspirantes/2026
+sudo chgrp daemon /opt/lampp/htdocs/sce_asp/_lib/file/doc/aspirantes/2026
+```
+
+Para nuevas generaciones (ej. 2027), crear la carpeta y asignar permisos igual:
+
+```bash
+sudo mkdir -p /opt/lampp/htdocs/sce_asp/_lib/file/doc/aspirantes/2027
+sudo chmod 0775 /opt/lampp/htdocs/sce_asp/_lib/file/doc/aspirantes/2027
+sudo chgrp daemon /opt/lampp/htdocs/sce_asp/_lib/file/doc/aspirantes/2027
+```
 
 ---
 

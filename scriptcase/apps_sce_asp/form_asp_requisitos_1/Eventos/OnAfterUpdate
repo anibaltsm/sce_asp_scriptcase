@@ -44,49 +44,60 @@ if ($prefijo_req === '') {
 error_log("form_asp_requisitos_1 OnAfterUpdate: id_asp=".$id_asp." num_req=".$num_req_short." prefijo=".$prefijo_req." correo_asp=".$correo_asp." ext=".$ext);
 
 // PASO 5: Rutas
-// cartas/[generacion]/           → donde ScriptCase sube el archivo (subdirectorio del campo)
-// cartas/[generacion]/[correo_asp]/ → donde dejamos el archivo renombrado (por aspirante)
-// aspirantes/[generacion]/[correo_asp]/ → copia final
+// Si el subdirectorio en ScriptCase es cartas/[generacion]/[usr_login], el archivo está en ruta_cartas_usr.
+// Si es solo cartas/[generacion], está en ruta_cartas_plano. Buscamos en ambas.
+// aspirantes/[generacion]/[correo_asp]/ → copia final (por login_FK del registro, no usr_login)
 $ruta_cartas_plano = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/cartas/".[generacion]."/";
+$usr_login         = trim([usr_login]);
+$ruta_cartas_usr   = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/cartas/".[generacion]."/".$usr_login."/";
 $ruta_cartas_asp   = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/cartas/".[generacion]."/".$correo_asp."/";
 $ruta_destino      = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/aspirantes/".[generacion]."/".$correo_asp."/";
-error_log("form_asp_requisitos_1 OnAfterUpdate: ruta_cartas_plano=".$ruta_cartas_plano." ruta_cartas_asp=".$ruta_cartas_asp);
+error_log("form_asp_requisitos_1 OnAfterUpdate: ruta_cartas_plano=".$ruta_cartas_plano." ruta_cartas_usr=".$ruta_cartas_usr." ruta_cartas_asp=".$ruta_cartas_asp);
 
 // PASO 6: Nombre final del archivo
 // Formato: generacion_id_asp_num_req_prefijo.ext  (ej. 2026_1281_11_carta_opinion.pdf)
 $nombre_pdf = [generacion]."_".$id_asp."_".$num_req_short."_".$prefijo_req.".".$ext;
 error_log("form_asp_requisitos_1 OnAfterUpdate: nombre_pdf=".$nombre_pdf." destino=".$ruta_destino);
 
-// PASO 7: Localizar el archivo en cartas/[generacion]/ (donde ScriptCase lo sube)
+// PASO 7: Localizar el archivo. ScriptCase puede subirlo en:
+//   - cartas/[generacion]/           (subdirectorio = cartas/[generacion])
+//   - cartas/[generacion]/[usr_login]/ (subdirectorio = cartas/[generacion]/[usr_login])
 // Se hacen hasta 3 intentos (1s entre cada uno) por si ScriptCase escribe el archivo justo después del evento.
 $archivo_origen = null;
+$rutas_buscar = array($ruta_cartas_plano);
+if ($usr_login !== '' && $ruta_cartas_usr !== $ruta_cartas_plano) {
+	$rutas_buscar[] = $ruta_cartas_usr;
+}
 for ($i = 0; $i < 3; $i++) {
 	if ($i > 0) { sleep(1); }
-	$candidato = $ruta_cartas_plano . $nombre_original;
-	if (file_exists($candidato)) {
-		$archivo_origen = $candidato;
-		break;
+	foreach ($rutas_buscar as $ruta) {
+		$candidato = $ruta . $nombre_original;
+		if (file_exists($candidato)) {
+			$archivo_origen = $candidato;
+			break 2;
+		}
 	}
-	// Si no existe con nombre exacto, tomar el archivo más reciente de la carpeta (< 90 s)
-	if (is_dir($ruta_cartas_plano)) {
-		$hace_90  = time() - 90;
-		$reciente = null;
-		foreach (new DirectoryIterator($ruta_cartas_plano) as $f) {
+	// Si no existe con nombre exacto, buscar el archivo más reciente (< 90 s) en cualquiera de las carpetas
+	$hace_90 = time() - 90;
+	$reciente = null;
+	foreach ($rutas_buscar as $ruta) {
+		if (!is_dir($ruta)) continue;
+		foreach (new DirectoryIterator($ruta) as $f) {
 			if ($f->isDot() || !$f->isFile() || strtolower($f->getExtension()) !== $ext) continue;
 			if ($f->getMTime() < $hace_90) continue;
 			if ($reciente === null || $f->getMTime() > $reciente['mtime']) {
 				$reciente = array('path' => $f->getPathname(), 'mtime' => $f->getMTime());
 			}
 		}
-		if ($reciente !== null) {
-			$archivo_origen = $reciente['path'];
-			break;
-		}
+	}
+	if ($reciente !== null) {
+		$archivo_origen = $reciente['path'];
+		break;
 	}
 }
 
 if ($archivo_origen === null || !file_exists($archivo_origen)) {
-	error_log("form_asp_requisitos_1 OnAfterUpdate: ERROR no se encontró el archivo en ".$ruta_cartas_plano." buscado=".$nombre_original);
+	error_log("form_asp_requisitos_1 OnAfterUpdate: ERROR no se encontró el archivo en ".$ruta_cartas_plano." ni en ".$ruta_cartas_usr." buscado=".$nombre_original);
 	sc_error_message("No se encontró el archivo subido en la carpeta de carga. Intenta de nuevo.");
 	return;
 }
@@ -102,11 +113,22 @@ $archivo_renombrado = $ruta_cartas_asp . $nombre_pdf;
 rename($archivo_origen, $archivo_renombrado);
 error_log("form_asp_requisitos_1 OnAfterUpdate: rename OK en cartas/".$correo_asp."/ -> ".$nombre_pdf);
 
-// PASO 9: Crear carpeta del aspirante en aspirantes/ si no existe
+// PASO 9: Crear carpeta del aspirante en aspirantes/[generacion]/[correo_asp]/ si no existe
+// La carpeta aspirantes/[generacion]/ debe ser escribible por el usuario del servidor web (ej. daemon).
+// Si falla: chmod 0775 y chgrp daemon en aspirantes y en aspirantes/2026 (o el año correspondiente).
 if (!is_dir($ruta_destino)) {
-	$ok_dir = @mkdir($ruta_destino, 0755, true);
-	if (!$ok_dir) { error_log("form_asp_requisitos_1 OnAfterUpdate: ERROR no se pudo crear carpeta ".$ruta_destino); }
-	else          { error_log("form_asp_requisitos_1 OnAfterUpdate: carpeta aspirantes creada ".$ruta_destino); }
+	$parent = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/aspirantes/".[generacion];
+	if (!is_dir($parent)) {
+		@mkdir($parent, 0775, true);
+	}
+	$ok_dir = @mkdir($ruta_destino, 0775, true);
+	if (!$ok_dir) {
+		$err = error_get_last();
+		$err_msg = ($err !== null && isset($err['message'])) ? $err['message'] : 'mkdir falló';
+		error_log("form_asp_requisitos_1 OnAfterUpdate: ERROR no se pudo crear carpeta ".$ruta_destino." | ".$err_msg);
+	} else {
+		error_log("form_asp_requisitos_1 OnAfterUpdate: carpeta aspirantes creada ".$ruta_destino);
+	}
 }
 
 // PASO 10: Copiar archivo a aspirantes/[generacion]/[correo_asp]/
@@ -124,16 +146,16 @@ sc_exec_sql("UPDATE sce_asp.asp_requisitos SET archivo='".addslashes($nombre_pdf
 error_log("form_asp_requisitos_1 OnAfterUpdate: FIN - asp_requisitos actualizado id_asp_req=".{id_asp_req});
 
 // PASO 12: Correo de confirmación de carga del documento
-// TO: aspirante | CC: recomendante vinculado a este requisito + anibal.sanchez@inecol.mx
+// TO: aspirante | CC: recomendante vinculado a este requisito + anibal.sanchez@inecol.mx + nancy.resendiz@inecol.mx (asistente de ventanilla)
 // ----------------------------------------------------------------------------
 $_m_smtp     = 'smtp.office365.com';
 $_m_user     = 'sce.posgrado@inecol.mx';
 $_m_pass     = '5C3.P0sgr4d0';
 $_m_from     = 'sce.posgrado@inecol.mx';
 $_m_admin    = 'anibal.sanchez@inecol.mx';
+$_m_ventanilla = 'nancy.resendiz@inecol.mx';  // Asistente de ventanilla
 $_m_port     = '587';
 $_m_conn     = 'T';
-$_m_fecha    = date('d/m/Y') . ' a las ' . date('H:i') . ' h';
 
 // Nombre completo del aspirante
 $_m_nom_asp = '';
@@ -160,9 +182,9 @@ if (isset({rs_m_recom[0][0]})) {
 
 // Intentar un solo correo TO aspirante con CC a recomendante + admin usando ";" como separador.
 // Si sc_mail_send rechaza varios CC (RFC 2822), en logs se verá el error y se puede volver a 2 llamadas.
-$_m_cc = $_m_admin;
+$_m_cc = $_m_admin . ';' . $_m_ventanilla;
 if ($_m_correo_recom !== '' && $_m_correo_recom !== $correo_asp) {
-	$_m_cc = $_m_correo_recom . ';' . $_m_admin;
+	$_m_cc = $_m_correo_recom . ';' . $_m_admin . ';' . $_m_ventanilla;
 }
 error_log("form_asp_requisitos_1 OnAfterUpdate: CC string (separador ;) = " . $_m_cc);
 
@@ -200,8 +222,6 @@ $_m_body = '
     <td style="padding: 30px 28px; background: #ffffff; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb;">
 
       <p style="margin: 0 0 14px; font-size: 15px; color: #1f2937; line-height: 1.5;">Por medio del presente se le informa que el documento que se detalla a continuación ha sido <strong>cargado correctamente</strong> en el Subsistema de Aspirantes al Posgrado del INECOL y será <strong>revisado por la instancia correspondiente</strong> en el marco del proceso de admisión.</p>
-      <p style="margin: 0 0 24px; font-size: 13px; color: #6b7280;">Fecha y hora de carga: ' . $_m_fecha . '</p>
-
       <!-- TABLA DE DETALLES -->
       <table cellpadding="0" cellspacing="0" border="0" style="width: 100%; border: 1px solid #e5e7eb; border-radius: 6px; border-collapse: separate; border-spacing: 0; overflow: hidden; margin: 0 0 24px;">
         <tr style="background: #f8fafc;">
