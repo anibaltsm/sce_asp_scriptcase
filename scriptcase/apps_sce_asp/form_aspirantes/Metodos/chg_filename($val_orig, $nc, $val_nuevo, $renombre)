@@ -1,0 +1,24 @@
+//sc_alert("Hola este es valorig: ".$val_orig." y este es valnuevo: ".$val_nuevo." , este nc: ".$nc." y este el del renombre: ".$renombre);
+if($val_orig!='' && $val_nuevo!=''){
+	$ext=substr($val_nuevo, -3, 3);
+	$id_asp_var=substr({id_asp}, -3, 3);
+
+	//Averiguar la ruta. 
+	if($nc=='foto'){
+		$ruta=$_SERVER['DOCUMENT_ROOT']."/sce_asp/_lib/file/img/aspirantes/".[generacion]."/".[usr_login]."/";
+	}
+	else {
+		$ruta=$_SERVER['DOCUMENT_ROOT']."/sce_asp/_lib/file/doc/aspirantes/".[generacion]."/".[usr_login]."/";
+	}
+
+	//Establecer el nuevo nombre
+	$nw_na=[generacion]."_".$id_asp_var."_".$renombre.".".$ext;
+	$nom_original=$ruta.$val_nuevo;
+
+	//Renombrar el archivo en la ruta
+	rename($nom_original, $ruta.$nw_na);
+
+	//Actualizar el nombre en la base de datos
+	$update_sql = "UPDATE aspirantes SET ".$nc."='".$nw_na."' WHERE login_FK='".[usr_login]."'";
+	sc_exec_sql($update_sql);
+}

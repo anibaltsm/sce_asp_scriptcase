@@ -11,27 +11,23 @@
 // 1. Ocultar botón global de Delete
 sc_btn_display("delete", "off");
 
-// 2. Leyenda: documento que debe cargar cada recomendante (como en requisitos/correos)
-$_leyenda_1 = '1ª Carta de recomendación confidencial (En formato PDF).';
-$_leyenda_2 = '2ª Carta de recomendación confidencial (En formato PDF).';
-$_leyenda_3 = 'Carta de opinión del director (En formato PDF).';
-sc_lookup(rs_l1, "SELECT leyenda FROM sce.list_req_gral WHERE num_requisito = 10 AND cc_carta = 1 LIMIT 1");
-if (isset({rs_l1[0][0]})) { $_leyenda_1 = htmlspecialchars(trim({rs_l1[0][0]})); }
-sc_lookup(rs_l2, "SELECT leyenda FROM sce.list_req_gral WHERE num_requisito = 11 AND cc_carta = 1 LIMIT 1");
-if (isset({rs_l2[0][0]})) { $_leyenda_2 = htmlspecialchars(trim({rs_l2[0][0]})); }
-sc_lookup(rs_l3, "SELECT leyenda FROM sce.list_req_gral WHERE num_requisito = 13 AND cc_carta = 1 LIMIT 1");
-if (isset({rs_l3[0][0]})) { $_leyenda_3 = htmlspecialchars(trim({rs_l3[0][0]})); }
-
+// 2. Instrucciones para el registro de recomendantes
+?>
+<div class="sc-leyenda-recomendantes" style="background:#e8f4fc;border:1px solid #0d6efd;color:#084298;padding:14px 16px;margin:0 0 12px 0;border-radius:4px;font-size:13px;line-height:1.5;">
+<p style="margin:0 0 10px 0;font-size:14px;font-weight:700;">Instrucciones para el registro de recomendantes</p>
+<p style="margin:0 0 10px 0;">En este apartado deberá registrar el nombre y correo electrónico de las personas que emitirán sus cartas de recomendación.</p>
+<p style="margin:0 0 12px 0;">A cada recomendante se enviará un correo con un usuario y contraseña para que suba directamente su documento al sistema. Le corresponde a usted verificar que la información registrada en la tabla sea correcta.</p>
+<p style="margin:0 0 6px 0;font-weight:600;">📋 Documentos que debe cargar cada recomendante:</p>
+<ul style="margin:0 0 12px 0;padding-left:20px;">
+<li><strong>Recomendante 1:</strong> 1ª Carta de recomendación confidencial (formato PDF)</li>
+<li><strong>Recomendante 2:</strong> 2ª Carta de recomendación confidencial (formato PDF)</li>
+<li><strong>Recomendante 3:</strong> Carta de opinión del director(a) de tesis de maestría (formato PDF) — <em>únicamente para aspirantes al doctorado</em>.</li>
+</ul>
+<p style="margin:0;font-size:12px;opacity:0.95;">El número asignado a cada recomendante (1, 2 o 3) en la tabla indica el documento que deberá cargar y el orden debe coincidir exactamente.</p>
+</div>
+<?php
 // 3. Aviso: una vez guardado no se puede editar
 ?>
-<div class="sc-leyenda-recomendantes" style="background:#e8f4fc;border:1px solid #0d6efd;color:#084298;padding:12px 14px;margin:0 0 12px 0;border-radius:4px;font-size:13px;">
-<strong>📋 Documento que debe cargar cada recomendante</strong> (igual que en los correos enviados a cada uno):
-<ul style="margin:8px 0 0 0;padding-left:20px;">
-<li><strong>Recomendante 1:</strong> <?php echo $_leyenda_1; ?></li>
-<li><strong>Recomendante 2:</strong> <?php echo $_leyenda_2; ?></li>
-<li><strong>Recomendante 3:</strong> <?php echo $_leyenda_3; ?> <em style="color:#6c757d;">solo para aspirantes al doctorado</em></li>
-</ul>
-</div>
 <div class="sc-aviso-recomendantes" style="background:#fff3cd;border:1px solid #ffc107;color:#856404;padding:10px 12px;margin:0 0 15px 0;border-radius:4px;font-size:14px;">
 <strong>⚠️ Aviso:</strong> Una vez que guarde los datos de un recomendante, no podrá modificarlos. Verifique que toda la información (incluido el correo) sea correcta antes de guardar.
 </div>

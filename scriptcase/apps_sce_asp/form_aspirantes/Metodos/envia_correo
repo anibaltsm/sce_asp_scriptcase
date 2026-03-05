@@ -1,0 +1,36 @@
+// Firma en PHP generado: envia_correo($emailasp, $copia, $asunto, $param_message) — usar esos nombres
+$mail_smtp_server    = 'smtp.office365.com';
+$mail_smtp_user      = 'sce.posgrado@inecol.mx';
+$mail_smtp_pass      = '5C3.P0sgr4d0';
+$mail_from           = 'sce.posgrado@inecol.mx';
+$mail_to             = isset($emailasp) ? trim($emailasp) : '';
+$mail_subject        = isset($asunto) ? $asunto : '';
+$mail_message        = isset($param_message) ? $param_message : '';
+$mail_copies         = isset($copia) ? $copia : '';
+$mail_format         = 'H';
+$mail_tp_copies      = 'CCC';
+$mail_port           = '587';
+$mail_tp_connection  = 'T';
+
+error_log("form_aspirantes envia_correo: intento To=".$mail_to." CC=".$mail_copies." asunto=".$mail_subject);
+sc_mail_send($mail_smtp_server,
+             $mail_smtp_user,
+             $mail_smtp_pass,
+             $mail_from,
+             $mail_to,
+             $mail_subject,
+             $mail_message,
+             $mail_format,
+             $mail_copies,
+             $mail_tp_copies,
+             $mail_port,
+             $mail_tp_connection);
+
+if ({sc_mail_ok}) {
+    error_log("form_aspirantes envia_correo: OK To=".$mail_to);
+    return true;
+} else {
+    error_log("form_aspirantes envia_correo: ERROR To=".$mail_to." ".{sc_mail_error});
+    sc_error_message({sc_mail_error});
+    return false;
+}
