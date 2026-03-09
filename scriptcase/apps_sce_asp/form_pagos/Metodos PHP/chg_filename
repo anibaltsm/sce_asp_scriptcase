@@ -42,8 +42,8 @@ if ([cont_file] != '' && {doc_compr_pago} != '') {
 	error_log("form_pagos chg_filename: num_req=".$num_req." prefijo_req=".$prefijo_req." ext=".$ext." id_asp=".$id_asp);
 
 	// --- Rutas ---
-	// $ruta_upload: donde ScriptCase (form_pagos, proyecto sce_asp) dejó el UUID subido
-	// $ruta:        destino final del comprobante renombrado (proyecto sce, donde lo sirve grid_pagos_t)
+	// $ruta_upload: carpeta del form_pagos en sce_asp (ScriptCase sirve la descarga desde aquí)
+	// $ruta:        copia para proyecto sce (la usa grid_pagos_t)
 	// $ruta2:       copia en carpeta del aspirante (sce_asp, por generacion/login)
 	$ruta_upload = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/pagos/".[generacion]."/";
 	$ruta  = $_SERVER['DOCUMENT_ROOT'] . "/sce/_lib/file/doc/pagos/".[generacion]."/";
@@ -59,15 +59,24 @@ if ([cont_file] != '' && {doc_compr_pago} != '') {
 	// num_req_short = número con mínimo 2 dígitos (ej. 08, 09, 10) para el nombre del archivo
 	$nw_na = {referencia}."_".$prefijo_req.".".$ext;
 	$nw_na2 = [generacion]."_".$id_asp."_".$num_req_short."_".$prefijo_req.".".$ext;
-	// El UUID subido está en sce_asp; se mueve/renombra al destino final en sce/
 	$nom_original = $ruta_upload.{doc_compr_pago};
+	$dest_form = $ruta_upload.$nw_na;
+	$dest_sce  = $ruta.$nw_na;
 
-	// --- Mover archivo de sce_asp (upload) a sce (destino grid) renombrado ---
-	$ok_rename = @rename($nom_original, $ruta.$nw_na);
-	if (!$ok_rename) {
-		error_log("form_pagos chg_filename: ERROR rename origen=".$nom_original." destino=".$ruta.$nw_na." existe_origen=".(file_exists($nom_original) ? 'si' : 'no'));
+	// --- Crear nombre estandarizado en sce_asp (lo necesita form_pagos_doc.php para descargar/visualizar) ---
+	$ok_copy_form = @copy($nom_original, $dest_form);
+	if (!$ok_copy_form) {
+		error_log("form_pagos chg_filename: ERROR copy form origen=".$nom_original." destino=".$dest_form." existe_origen=".(file_exists($nom_original) ? 'si' : 'no'));
 	} else {
-		error_log("form_pagos chg_filename: rename OK -> ".$ruta.$nw_na);
+		error_log("form_pagos chg_filename: copy form OK -> ".$dest_form);
+	}
+
+	// --- Copiar también a sce (la usa grid_pagos_t) ---
+	$ok_copy_sce = @copy($dest_form, $dest_sce);
+	if (!$ok_copy_sce) {
+		error_log("form_pagos chg_filename: ERROR copy sce origen=".$dest_form." destino=".$dest_sce." existe_origen=".(file_exists($dest_form) ? 'si' : 'no'));
+	} else {
+		error_log("form_pagos chg_filename: copy sce OK -> ".$dest_sce);
 	}
 
 	// --- Asegurar carpeta de aspirantes (multiplataforma) y copiar archivo ahí ---
@@ -80,7 +89,7 @@ if ([cont_file] != '' && {doc_compr_pago} != '') {
 		if (!$ok_dir) { error_log("form_pagos chg_filename: ERROR no se pudo crear carpeta ".$ruta2); }
 		else { error_log("form_pagos chg_filename: carpeta creada ".$ruta2); }
 	}
-	$origen = $ruta.$nw_na;
+	$origen = $dest_form;
 	$destino = $ruta2.$nw_na2;
 	error_log("form_pagos chg_filename: ruta_destino=".$ruta2." archivo_destino=".$nw_na2);
 	$ok_copy = @copy($origen, $destino);
@@ -90,9 +99,21 @@ if ([cont_file] != '' && {doc_compr_pago} != '') {
 		error_log("form_pagos chg_filename: copy OK -> ".$nw_na2." en aspirantes");
 	}
 
+	// --- Limpiar el archivo original subido por el usuario ---
+	// Solo se elimina si ya existe el renombrado en sce_asp, la copia en sce y la copia en aspirantes.
+	if (basename($nom_original) !== $nw_na && file_exists($dest_form) && file_exists($dest_sce) && file_exists($destino)) {
+		$ok_del = @unlink($nom_original);
+		if (!$ok_del) {
+			error_log("form_pagos chg_filename: WARN no se pudo eliminar original ".$nom_original);
+		} else {
+			error_log("form_pagos chg_filename: original eliminado ".basename($nom_original));
+		}
+	}
+
 	// --- Actualizar nombre en tabla pagos (sce) ---
 	$update_sql = "UPDATE sce.pagos SET doc_compr_pago='".$nw_na."' WHERE id_pago='".{id_pago}."'";
 	sc_exec_sql($update_sql);
+	{doc_compr_pago} = $nw_na;
 
 	// --- Actualizar nombre en tabla asp_requisitos (sce_asp) ---
 	$update_sql2 = "UPDATE sce_asp.asp_requisitos SET archivo='".$nw_na2."' WHERE login_FK='".[usr_login]."' AND num_req=".$num_req;

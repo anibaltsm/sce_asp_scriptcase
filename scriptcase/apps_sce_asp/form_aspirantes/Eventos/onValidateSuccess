@@ -10,7 +10,7 @@ if (([valor_finalizado]!={cc_finalizado})&&({cc_finalizado}==1))
           ."AND sce.puestos_posgrado.cve_puesto='05'";
 	sc_lookup(rs15,$recep);
 	$emailadmvo={rs15[0][0]};
-	$copia=$emailadmvo.';fernando.ramirez@inecol.mx';
+	$copia=$emailadmvo.';monica.enriquez@inecol.mx';
 
 	$asunto='INECOL. Recepción de solicitud – Proceso de selección '.{generacion};
 
