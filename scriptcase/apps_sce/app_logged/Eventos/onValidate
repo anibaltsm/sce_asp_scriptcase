@@ -1,0 +1,5 @@
+sc_log_add('login', {lang_login_ok});
+sc_logged_out([user]);
+sc_logged_in([user]);
+sc_user_logout('logged_user', 'logout', 'app_Login');
+sc_redir('menu_master', '', '_parent');

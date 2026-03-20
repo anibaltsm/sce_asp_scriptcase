@@ -1,0 +1,79 @@
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Tomar id_asp de la sesión si no viene por parámetro
+if (!isset($_GET['id_asp']) || empty($_GET['id_asp'])) {
+    if (isset($_SESSION['id_asp']) && !empty($_SESSION['id_asp'])) {
+        $_GET['id_asp'] = $_SESSION['id_asp'];
+        $this->sc_temp_id_asp = $_SESSION['id_asp'];
+        
+        // Limpiar ceros del inicio
+        $id_asp_limpio = ltrim($_SESSION['id_asp'], "0");
+        if (empty($id_asp_limpio)) {
+            $id_asp_limpio = "0";
+        }
+        
+        // Actualizar sesión y variable con valor limpio
+        $_SESSION['id_asp'] = $id_asp_limpio;
+        $this->id_asp = $id_asp_limpio;
+        [id_asp] = $id_asp_limpio;
+        
+    } else {
+        if (!isset($this->Campos_Mens_erro)){$this->Campos_Mens_erro = "";}
+        if (!empty($this->Campos_Mens_erro)){$this->Campos_Mens_erro .= "<br>";}$this->Campos_Mens_erro .= "No se pudo identificar al aspirante.";
+        if (isset($this->sc_temp_id_asp)) {$_SESSION['id_asp'] = $this->sc_temp_id_asp;}
+        if (!isset($this->Campos_Mens_erro) || empty($this->Campos_Mens_erro)) {
+            $this->nmgp_redireciona_form($this->path_link . "" . SC_dir_app_name('menu_aspirante') . "/", $this->nm_location, "","_self", 440, 630, "ret_self");
+        }
+    }
+} else {
+    $this->sc_temp_id_asp = $_GET['id_asp'];
+    
+    // Limpiar ceros del inicio
+    $id_asp_limpio = ltrim($_GET['id_asp'], "0");
+    if (empty($id_asp_limpio)) {
+        $id_asp_limpio = "0";
+    }
+    
+    // Actualizar sesión y variable con valor limpio
+    $_SESSION['id_asp'] = $id_asp_limpio;
+    $this->id_asp = $id_asp_limpio;
+    [id_asp] = $id_asp_limpio;
+}
+
+// CRÍTICO: Limpiar el WHERE si ya existe (para que se reconstruya con valor limpio)
+if (isset($_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_orig'])) {
+    // Si el WHERE tiene el valor con ceros, limpiarlo para que se reconstruya
+    if (strpos($_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_orig'], '0000000') !== false) {
+        unset($_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_orig']);
+        unset($_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_pesq']);
+        unset($_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_pesq_ant']);
+        
+        // Reconstruir el WHERE con el valor limpio
+        $_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_orig'] = " where (id_asp_FK=" . $this->id_asp . ")";
+        $_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_pesq'] = $_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_orig'];
+        $_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_pesq_ant'] = $_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_orig'];
+        
+        error_log(" GRID_PAGOS: WHERE reconstruido con id_asp limpio = " . $this->id_asp);
+    }
+}
+
+// Mensaje con instrucciones y enlace a la guía de pago
+$url_guia_pago = "#"; // Reemplazar por la URL real del PDF o página de la guía (ej: /docs/guia_pago_posgrado.pdf)
+?>
+<div class="sc-leyenda-pagos" style="background:#e8f4fc;border:1px solid #0d6efd;color:#084298;padding:14px 16px;margin:0 0 12px 0;border-radius:4px;font-size:13px;line-height:1.5;">
+<p style="margin:0 0 10px 0;font-size:14px;font-weight:700;">Instrucciones para realizar tus pagos</p>
+<p style="margin:0 0 10px 0;">En este apartado podrás consultar el estado de tus pagos y los conceptos asociados a tu proceso de admisión al posgrado.</p>
+<p style="margin:0 0 10px 0;">Antes de realizar cualquier pago, te recomendamos leer la guía oficial para evitar errores en el proceso y conocer los montos, conceptos y formas de pago aceptadas.</p>
+<p style="margin:0;">
+<strong>📋 Guía de pago:</strong>
+<a href="<?php echo htmlspecialchars($url_guia_pago); ?>" target="_blank" rel="noopener noreferrer" style="color:#0d6efd;font-weight:600;text-decoration:underline;">Guía de pago para los aspirantes al posgrado del Instituto de Ecología, A.C. — Secretaría de Posgrado</a>
+</p>
+</div>
+<?php
+
+// Debug
+error_log("id_asp desde GET: " . (isset($_GET['id_asp']) ? $_GET['id_asp'] : 'NO SET'));
+error_log("id_asp desde SESSION (limpio): " . (isset($_SESSION['id_asp']) ? $_SESSION['id_asp'] : 'NO SET'));
+error_log("id_asp para WHERE (SIN ceros): " . (isset($this->id_asp) ? $this->id_asp : 'NO SET'));

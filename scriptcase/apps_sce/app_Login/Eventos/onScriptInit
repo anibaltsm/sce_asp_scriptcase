@@ -1,0 +1,5 @@
+// Si el usuario llega aquí con sesión previa, cerrar sesión de forma estándar.
+// Eliminar registro de usuario logueado (módulo de seguridad) y limpiar estados.
+sc_user_logout();
+sc_reset_apl_status();
+sc_reset_global([usr_login], [usr_email]);

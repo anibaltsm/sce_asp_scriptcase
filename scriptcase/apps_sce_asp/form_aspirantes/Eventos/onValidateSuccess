@@ -35,6 +35,20 @@ if (([valor_finalizado]!={cc_finalizado})&&({cc_finalizado}==1))
 	error_log("form_aspirantes onValidateSuccess: envío correo recepción solicitud To=".$para." generación=".$gen_esc." CC=".$copia);
 	envia_correo($para, $copia, $asunto, $message);
 	error_log("form_aspirantes onValidateSuccess: correo enviado (recepción solicitud) To=".$para);
+
+	// Insertar estado en asp_estados_sol (sce_asp = misma BD que usa grid_asp_estados_sol): id_tip_edo = 1 "Aspirante reporta solicitud y requisitos completados"
+	$id_asp    = (int) trim({id_asp});
+	$login_fk  = (trim({login_FK}) != '') ? addslashes(trim({login_FK})) : (isset($_SESSION['usr_login']) ? addslashes($_SESSION['usr_login']) : '');
+	$now       = date('Y-m-d H:i:s');
+	$ip        = isset($_SERVER['REMOTE_ADDR']) ? addslashes($_SERVER['REMOTE_ADDR']) : '';
+	$notas_edo = addslashes('Solicitud y requisitos reportados como completados');
+	if ($id_asp > 0 && $login_fk !== '') {
+		$sql_estado = "INSERT INTO sce_asp.asp_estados_sol (id_asp_FK, login_FK, id_tip_edo_FK, fecha_hora_reg, notas, login_insert, fecha_alta, ip_alta, login_last, fecha_ult_act, ip_last) "
+			. "VALUES ($id_asp, '$login_fk', 1, '$now', '$notas_edo', '$login_fk', '$now', '$ip', '$login_fk', '$now', '$ip')";
+		sc_exec_sql($sql_estado);
+		error_log("form_aspirantes onValidateSuccess: INSERT sce_asp.asp_estados_sol id_asp_FK=$id_asp id_tip_edo_FK=1");
+	}
+
 	sc_ajax_message('Su solicitud ha sido registrada exitosamente', 'Solicitud recibida');
 }
 else

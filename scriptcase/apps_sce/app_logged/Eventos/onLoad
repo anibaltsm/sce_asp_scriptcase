@@ -1,0 +1,1 @@
+{html} = sprintf({lang_user_logged}, [user]);

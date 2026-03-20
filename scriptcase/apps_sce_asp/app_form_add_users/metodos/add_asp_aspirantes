@@ -123,6 +123,49 @@ function get_client_ip() {
     return $ipaddress;
 }
 
+/**
+ * Algoritmo 37 BBVA (CIE): agrega DV de 2 digitos al final.
+ */
+function bbva37_referencia_final($referencia_base) {
+    $data = strtoupper(preg_replace('/[^0-9A-Za-z]/', '', (string)$referencia_base));
+    if ($data === '') {
+        $data = '0';
+    }
+
+    // El ultimo caracter de la base no se considera para el calculo del DV.
+    $base_calculo = substr($data, 0, -1);
+    if ($base_calculo === '') {
+        $base_calculo = $data;
+    }
+
+    $ponderadores = array(13, 17, 19, 23, 11);
+    $suma = 0;
+    $len = strlen($base_calculo);
+
+    for ($offset = 0; $offset < $len; $offset++) {
+        $idx = $len - 1 - $offset;
+        $char = $base_calculo[$idx];
+        $ord = ord($char);
+
+        if ($ord >= 48 && $ord <= 57) {
+            $valor = $ord - 48;
+        } else if ($ord >= 65 && $ord <= 90) {
+            // A..Z -> 1..9 ciclico (A=1, ..., I=9, J=1, ..., Z=8)
+            $valor = (($ord - 65) % 9) + 1;
+        } else {
+            $valor = 0;
+        }
+
+        $ponderador = $ponderadores[$offset % count($ponderadores)];
+        $suma += ($valor * $ponderador);
+    }
+
+    $dv = (($suma + 330) % 97) + 1;
+    $dv_str = str_pad((string)$dv, 2, '0', STR_PAD_LEFT);
+
+    return $data . $dv_str;
+}
+
 // Limpiar id_asp de ceros
 $id_asp_limpio = ltrim($id_asp, "0");
 if (empty($id_asp_limpio)) {
@@ -142,7 +185,7 @@ if (!isset({rs_check_pago[0][0]})) {
     
     $new_ip = get_client_ip();
     
-    // Generar referencia
+    // Generar referencia base
     $datosinceros = $id_asp_limpio;
     $dato = strlen($datosinceros);
     
@@ -156,9 +199,12 @@ if (!isset({rs_check_pago[0][0]})) {
         $referencia = "INECOLPA0002" . $datosinceros . "00";
     }
     
+    // Generar referencia final con DV BBVA37
+    $referencia = bbva37_referencia_final($referencia);
+
     $nombre_completo = $name . " " . $apat . " " . $amat;
     
-    error_log("REGISTRO: Referencia generada=" . $referencia . ", id_asp_FK=" . $datosinceros);
+    error_log("REGISTRO: Referencia final con DV generada=" . $referencia . ", id_asp_FK=" . $datosinceros);
     
     // ✅ INSERTAR PAGO EN PRODUCCIÓN usando conn_sce
     $qry_insert_pago = "INSERT INTO sce.pagos (
@@ -168,6 +214,8 @@ if (!isset({rs_check_pago[0][0]})) {
                             concepto, 
                             monto, 
                             referencia, 
+                            doc_csf,
+                            fecha_pago,
                             login_insert, 
                             fecha_alta, 
                             ip_alta
@@ -176,8 +224,10 @@ if (!isset({rs_check_pago[0][0]})) {
                             " . $datosinceros . ", 
                             " . sc_sql_injection($nombre_completo) . ", 
                             'Derecho al proceso de seleccion " . $generacion_activa . "',
-                            '600',
+                            '1250',
                             '" . $referencia . "',
+                            NULL,
+                            NULL,
                             " . sc_sql_injection($login) . ",
                             NOW(),
                             '" . $new_ip . "'

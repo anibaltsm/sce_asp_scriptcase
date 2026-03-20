@@ -1,0 +1,16 @@
+// Sincronizar cc_rec_tesoreria (sce.pagos) con cc_correcto (sce_asp.asp_requisitos).
+// 0 = pendiente, 1 = recibido/correcto.
+// Solo se actualiza el requisito "comprobante de pago" (prefijo_requisito = 'comp_pago') del aspirante.
+// Requiere que la conexión de la app tenga permiso sobre sce_asp; si no, usar: sc_exec_sql($sql, 'conn_sce_asp');
+
+$id_asp = trim({id_asp_FK});
+$cc     = (int)({cc_rec_tesoreria});
+
+if ($id_asp !== '' && $id_asp !== '0') {
+	$id_asp_safe = (int) $id_asp;
+	$sql = "UPDATE sce_asp.asp_requisitos 
+	        SET cc_correcto = " . $cc . " 
+	        WHERE id_asp_FK = " . $id_asp_safe . " 
+	        AND prefijo_requisito = 'comp_pago'";
+	sc_exec_sql($sql);
+}

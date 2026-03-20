@@ -34,3 +34,7 @@ __pycache__/
 .idea/
 .vscode/
 *.sublime-*
+
+# Respaldos pesados / sensibles locales
+respaldos bd/*.sql
+posgrados.inecol.mx_202603 (1)/private.key

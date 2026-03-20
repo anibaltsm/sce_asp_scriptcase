@@ -1,0 +1,2 @@
+$year = date("Y");
+[glo_year]= $year;

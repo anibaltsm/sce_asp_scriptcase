@@ -1,0 +1,152 @@
+$sql = "SELECT 
+		app_name,
+		priv_access,
+		priv_insert,
+		priv_delete,
+		priv_update,
+		priv_export,
+		priv_print
+	      FROM sec_groups_apps
+	      WHERE group_id IN
+	          (SELECT
+		       group_id
+		   FROM
+		       sec_users_groups 
+		   WHERE
+		       login = '". [usr_login] ."')";
+sc_select(rs, $sql);
+if ({rs} !== false)
+{
+	while (!$rs->EOF)
+	{
+		if( $rs->fields[1] == 'Y')
+		{
+		    sc_apl_status($rs->fields[0], 'on');
+		}
+		else
+		{
+		    sc_apl_status($rs->fields[0], 'off');
+		}
+		sc_apl_conf($rs->fields[0], 'insert', has_priv($rs->fields[2]));
+		sc_apl_conf($rs->fields[0], 'delete', has_priv($rs->fields[3]));
+		sc_apl_conf($rs->fields[0], 'update', has_priv($rs->fields[4]));
+		//export
+		$export_permission = 'btn_display_'. has_priv($rs->fields[5]);
+		sc_apl_conf($rs->fields[0], $export_permission, 'xls');
+		sc_apl_conf($rs->fields[0], $export_permission, 'word');
+		sc_apl_conf($rs->fields[0], $export_permission, 'pdf');
+		sc_apl_conf($rs->fields[0], $export_permission, 'xml');
+		sc_apl_conf($rs->fields[0], $export_permission, 'csv');
+		sc_apl_conf($rs->fields[0], $export_permission, 'rtf');
+		//export
+		
+		$export_permission = 'btn_display_'. has_priv($rs->fields[6]);
+		sc_apl_conf($rs->fields[0], $export_permission, 'print');
+		$rs->MoveNext();	
+	}
+	$rs->Close();
+		sc_log_add('login', {lang_login_ok});
+	
+//----------------------------------------------------
+	$sql_command = "SELECT group_id
+		   			FROM sec_users_groups 
+		   			WHERE login =  '". [usr_login] ."'";
+		sc_lookup(ds, $sql_command);
+		$tipousu = {ds[0][0]};
+		sc_set_global($tipousu);
+		switch ($tipousu){
+			case 1:
+					$menu = 'menu_master';
+			break;
+			case 2:
+					$sql_id_usu_est = " SELECT id_est, id_prog_FK
+										FROM estudiantes 
+										WHERE login_FK =  '". [usr_login] ."'";
+					sc_lookup(idusu, $sql_id_usu_est);
+					$id_usu_est = {idusu[0][0]};
+					$id_prog = {idusu[0][1]};
+			        sc_set_global($id_usu_est);
+			        $num_usu=$id_usu_est;
+					sc_set_global($num_usu);
+					if($id_prog==9){$menu = 'menu_est_ebc';}
+					else{$menu = 'menu_estudiante';}
+			break;
+			case 3:
+					$sql_id_usu_ai = " SELECT id_pers_admvo_inecol
+		   							   FROM pers_admvo_inecol 
+		   							   WHERE login_FK =  '". [usr_login] ."'";
+					sc_lookup(idusu_ai, $sql_id_usu_ai);
+					$id_usu_ai = {idusu_ai[0][0]};
+			        sc_set_global($id_usu_ai);
+					$num_usu=$id_usu_ai;
+					sc_set_global($num_usu);
+					$menu = 'Menu_Tesoreria';
+			break;
+			case 4:
+					$sql_id_usu_ap = "  SELECT id_pers_admvo_posg
+										FROM pers_admvo_posg 
+										WHERE login_FK =  '". [usr_login] ."'";
+					sc_lookup(idusu_ap, $sql_id_usu_ap);
+					$id_usu_ap = {idusu_ap[0][0]};
+			        sc_set_global($id_usu_ap);
+					$num_usu=$id_usu_ap;
+					sc_set_global($num_usu);
+				    $menu = 'menu_admvo_posgrado';
+			break;			
+			case 5:
+					$sql_id_usu_asp = " SELECT id_asp
+										FROM aspirantes
+										WHERE login_FK =  '". [usr_login] ."'";
+					sc_lookup(idusu_asp, $sql_id_usu_asp);
+					$id_usu_asp = {idusu_asp[0][0]};
+			        sc_set_global($id_usu_asp);
+					$num_usu=$id_usu_asp;
+					sc_set_global($num_usu);			
+					$menu = 'menu_aspirante';
+			break;		
+			case 6:
+					$sql_id_usu_vis = " SELECT id_vis_est
+										FROM visitante_estud 
+										WHERE login_FK =  '". [usr_login] ."'";
+					sc_lookup(idusu_vis, $sql_id_usu_vis);
+					$id_usu_vis = {idusu_vis[0][0]};
+			        sc_set_global($id_usu_vis);
+					$num_usu=$id_usu_vis;
+					sc_set_global($num_usu);
+			
+					$menu = 'menu_visitante';
+			break;
+			case 7:
+					
+					$sql_id_usu_aci = " SELECT id_persacadposg
+										FROM persacadposg 
+										WHERE login_FK =  '". [usr_login] ."'";
+					sc_lookup(idusu_aci, $sql_id_usu_aci);
+					$id_usu_aci = {idusu_aci[0][0]};
+			        sc_set_global($id_usu_aci);
+					$num_usu=$id_usu_aci;
+					sc_set_global($num_usu);
+
+					$menu = 'menu_academico_inecol';
+			break;
+			case 8:
+					$sql_id_usu_acp = " SELECT id_persacadposg
+										FROM persacadposg 
+										WHERE login_FK =  '". [usr_login] ."'";
+					sc_lookup(idusu_acp, $sql_id_usu_acp);
+					$id_usu_acp = {idusu_acp[0][0]};
+			        sc_set_global($id_usu_acp);
+					$num_usu=$id_usu_acp;
+					sc_set_global($num_usu);							
+					$qmcap="	SELECT id_m_cap
+								FROM miembros_cap
+								WHERE id_persacadposg_FK='".$id_usu_acp."'";
+					sc_lookup(rs9,$qmcap);
+					$mcap = {rs9[0][0]};
+					sc_set_global($mcap);	
+					$menu = 'menu_academico_posgrado';
+			break;
+	
+		}
+	sc_redir($menu);	
+}

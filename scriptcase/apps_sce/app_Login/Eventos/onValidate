@@ -1,0 +1,35 @@
+$slogin = sc_sql_injection({login});
+$spswd = sc_sql_injection(({pswd}));
+
+$sql = "SELECT 
+		priv_admin,
+		active, 
+		name, 
+		email 
+	      FROM sec_users 
+	      WHERE login = $slogin
+		AND pswd = ".$spswd."";
+	
+sc_lookup(rs, $sql);
+	
+if(count({rs}) == 0)
+{
+	sc_log_add('login Fail', {lang_login_fail} . {login});
+	sc_error_message({lang_error_login});
+}
+else if({rs[0][1]} == 'Y')
+{
+	$usr_login		= {login};
+	$usr_priv_admin = ({rs[0][0]} == 'Y') ? TRUE : FALSE;
+	$usr_name		= {rs[0][2]};
+	$usr_email		= {rs[0][3]};
+	sc_set_global($usr_login);
+	sc_set_global($usr_priv_admin);
+	sc_set_global($usr_name);
+	sc_set_global($usr_email);
+}
+else
+{
+	sc_error_message({lang_error_not_active});
+	sc_error_exit();
+}

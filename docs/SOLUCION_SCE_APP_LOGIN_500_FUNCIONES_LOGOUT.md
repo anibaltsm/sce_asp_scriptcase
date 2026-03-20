@@ -47,23 +47,36 @@ Así, al cargar `/sce/app_Login/`, `fix.php` se incluye antes y las llamadas dej
    ```  
    La primera línea debería ser `HTTP/2 200` (o `HTTP/1.1 200`), no `500`.
 
-## Mantenimiento al volver a publicar
+## Solución definitiva (que no se desconfigure tras cada deploy)
 
-Cada vez que se **vuelva a publicar** el proyecto a `/opt/lampp/htdocs/sce` (Deploy / Publish Wizard), Scriptcase puede **sobrescribir** `_lib/lib/php/fix.php` y **quitar** estas definiciones.
+Cada vez que se **vuelve a publicar** el proyecto (Deploy / Publish Wizard), Scriptcase **sobrescribe** `_lib/lib/php/fix.php` y se pierden las funciones, por eso la página vuelve a dar 500.
 
-Opciones:
+Para que **no vuelva a pasar**:
 
-1. **Después de cada publicación:**  
-   Volver a añadir en `fix.php` las tres funciones (o ejecutar un script que las inyecte).
+1. **Tras cada publicación** (o la primera vez que falle), ejecuta en el servidor:
+   ```bash
+   sudo bash /opt/sce_asp_scriptcase/scripts/post_deploy_sce.sh
+   ```
+   Este script:
+   - Vuelve a inyectar en `fix.php` las funciones de logout/login (y `schemas.ini` de temas).
+   - **Bloquea** `fix.php` con `chattr +i` para que el **próximo deploy no pueda sobrescribirlo**. Así no tendrás que ejecutar el script después de cada publicación.
 
-2. **En el proyecto de desarrollo (Scriptcase):**  
-   Si existe un `fix.php` o un include común que se publique dentro de `_lib`, definir ahí las mismas funciones para que cada despliegue ya las traiga.
+2. **Si en el futuro** necesitas que Scriptcase vuelva a poder modificar `fix.php` (por ejemplo, actualización de Scriptcase):
+   ```bash
+   sudo chattr -i /opt/lampp/htdocs/sce/_lib/lib/php/fix.php
+   ```
+   Luego publica y vuelve a ejecutar `post_deploy_sce.sh`.
 
-3. **Corregir en Scriptcase (recomendado a largo plazo):**  
-   En la aplicación **app_Login**, revisar el evento que genera la llamada a `sc_looged_check_logout()` / `sc_logged_out()` y sustituir por el macro oficial **`sc_user_logout()`** y la redirección adecuada (ver documentación de Scriptcase y, en este repo, `docs/SOLUCION_LOGOUT_MENU_ASPIRANTE.md`). Así no se dependen de funciones que no existen en _lib.
+3. **Sin bloqueo:** si prefieres no usar `chattr +i`, ejecuta después de **cada** deploy:
+   ```bash
+   sudo bash /opt/sce_asp_scriptcase/scripts/post_deploy_sce.sh --no-lock
+   ```
+
+Resumen: **una sola ejecución de `post_deploy_sce.sh` (sin `--no-lock`) deja fix.php parcheado e inmutable, y los siguientes deploys ya no lo desconfiguran.**
 
 ## Referencias
 
+- **Script único post-deploy:** `scripts/post_deploy_sce.sh` (parche + temas + bloqueo de fix.php).
 - Logs: `/opt/lampp/logs/php_error_log`
 - Solución similar para menú aspirante: `docs/SOLUCION_LOGOUT_MENU_ASPIRANTE.md`
 - Scriptcase: macro `sc_user_logout()` para cierre de sesión

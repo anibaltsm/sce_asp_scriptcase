@@ -1,8 +1,9 @@
 // ---------------------------------------------------------------------------
 // Método: chg_filename
-// Descripción: Renombra el comprobante de pago subido, lo copia a la carpeta
-//   de aspirantes con nombre normalizado y actualiza ambos registros en BD.
-// Requiere: cont_file y doc_compr_pago con valor para ejecutar.
+// Descripción: Renombra el comprobante de pago y el CSF subidos, los copia a la
+//   carpeta de aspirantes con nombre normalizado y actualiza ambos registros en BD.
+// Requiere: cont_file y doc_compr_pago con valor para ejecutar el bloque de pago.
+//           doc_csf con valor para ejecutar el bloque de CSF.
 // Logs: ver README_LOGS.md en la raíz del proyecto.
 // ---------------------------------------------------------------------------
 // Origen de los datos (form abierto desde grid o enlace; tabla principal: sce.pagos):
@@ -15,6 +16,14 @@
 // CARPETA PAGOS: el archivo subido (UUID) viene en sce_asp/_lib/file/doc/pagos/generacion/
 //   pero su destino final es sce/_lib/file/doc/pagos/generacion/ (proyecto sce, donde lo sirve el grid).
 // CARPETA ASPIRANTES (copia): aspirantes/generacion/usr_login/ en sce_asp — se mantiene por aspirante.
+//
+// BLOQUE 1 — COMPROBANTE DE PAGO:
+//   Nombres: {referencia}_{prefijo_req}.{ext}  /  {generacion}_{id_asp}_{num_req}_{prefijo_req}.{ext}
+//   Campo BD: sce.pagos.doc_compr_pago  |  sce_asp.asp_requisitos (cc_pago=1)
+// BLOQUE 2 — CSF:
+//   Nombres: {referencia}_csf.{ext}  /  {generacion}_{id_asp}_{num_req}_csf.{ext}
+//   Campo BD: sce.pagos.doc_csf  |  sce_asp.asp_requisitos (prefijo_requisito='csf')
+//   Rutas:    sce_asp/_lib/file/doc/pagos/{gen}/  →  sce/_lib/file/doc/pagos/{gen}/
 // ---------------------------------------------------------------------------
 
 if ([cont_file] != '' && {doc_compr_pago} != '') {
@@ -122,4 +131,111 @@ if ([cont_file] != '' && {doc_compr_pago} != '') {
 	error_log("form_pagos chg_filename: FIN - pagos y asp_requisitos actualizados");
 } else {
 	error_log("form_pagos chg_filename: SKIP - cont_file o doc_compr_pago vacío");
+}
+
+// ============================================================================
+// BLOQUE 2: CSF (Constancia de Situación Fiscal)
+// ============================================================================
+// Nombre en pagos:      {referencia}_csf.{ext}          ej. INECOLPA0002127600_csf.pdf
+// Nombre en aspirantes: {generacion}_{id_asp}_{num_req}_csf.{ext}  ej. 2026_1276_09_csf.pdf
+// Rutas:
+//   upload (sce_asp):   sce_asp/_lib/file/doc/pagos/{generacion}/
+//   copia sce:          sce/_lib/file/doc/pagos/{generacion}/
+//   copia aspirantes:   sce_asp/_lib/file/doc/aspirantes/{generacion}/{usr_login}/
+// num_req: se obtiene desde list_req_gral donde prefijo_requisito = 'csf'
+// ============================================================================
+if ({doc_csf} != '') {
+
+	error_log("form_pagos chg_filename CSF: INICIO id_pago=".{id_pago}." doc_csf=".{doc_csf});
+
+	// --- Datos del archivo ---
+	$ext_csf   = substr({doc_csf}, -3, 3);
+	$id_asp_csf = {id_asp_FK};
+
+	// --- Obtener num_req del requisito CSF en la convocatoria activa ---
+	$qry_csf_req = "SELECT list_req_gral.num_requisito FROM convocatorias_posg
+		INNER JOIN list_req_gral ON convocatorias_posg.id_conv = list_req_gral.id_conv_FK
+		WHERE cc_activa = 1 AND list_req_gral.prefijo_requisito = 'csf' LIMIT 1";
+	sc_lookup(rs_csf, $qry_csf_req);
+	$num_req_csf = isset({rs_csf[0][0]}) ? {rs_csf[0][0]} : '';
+	$num_req_csf_short = ($num_req_csf !== '') ? str_pad((string)(int)$num_req_csf, 2, '0', STR_PAD_LEFT) : '00';
+
+	error_log("form_pagos chg_filename CSF: num_req=".$num_req_csf." ext=".$ext_csf." id_asp=".$id_asp_csf);
+
+	// --- Rutas ---
+	$ruta_upload_csf = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/pagos/".[generacion]."/";
+	$ruta_sce_csf    = $_SERVER['DOCUMENT_ROOT'] . "/sce/_lib/file/doc/pagos/".[generacion]."/";
+	$ruta_asp_csf    = $_SERVER['DOCUMENT_ROOT'] . "/sce_asp/_lib/file/doc/aspirantes/".[generacion]."/".[usr_login]."/";
+
+	// Asegurar carpeta destino en sce/
+	if (!is_dir($ruta_sce_csf)) {
+		@mkdir($ruta_sce_csf, 0755, true);
+		error_log("form_pagos chg_filename CSF: carpeta sce creada " . $ruta_sce_csf);
+	}
+
+	// Asegurar carpeta destino en aspirantes/
+	if (!is_dir($ruta_asp_csf)) {
+		$ok_dir_csf = @mkdir($ruta_asp_csf, 0755, true);
+		if (!$ok_dir_csf) { error_log("form_pagos chg_filename CSF: ERROR no se pudo crear carpeta " . $ruta_asp_csf); }
+		else              { error_log("form_pagos chg_filename CSF: carpeta aspirantes creada " . $ruta_asp_csf); }
+	}
+
+	// --- Nombres normalizados ---
+	$nw_csf      = {referencia}."_csf.".$ext_csf;
+	$nw_csf_asp  = [generacion]."_".$id_asp_csf."_".$num_req_csf_short."_csf.".$ext_csf;
+	$orig_csf    = $ruta_upload_csf.{doc_csf};
+	$dest_csf    = $ruta_upload_csf.$nw_csf;
+	$dest_csf_sce = $ruta_sce_csf.$nw_csf;
+	$dest_csf_asp = $ruta_asp_csf.$nw_csf_asp;
+
+	error_log("form_pagos chg_filename CSF: orig=".$orig_csf." dest_form=".$dest_csf." dest_sce=".$dest_csf_sce." dest_asp=".$dest_csf_asp);
+
+	// 1. Copiar con nombre normalizado en sce_asp (para descarga/visualización en form_pagos)
+	$ok_csf_form = @copy($orig_csf, $dest_csf);
+	if (!$ok_csf_form) {
+		error_log("form_pagos chg_filename CSF: ERROR copy form origen=".$orig_csf." destino=".$dest_csf." existe_origen=".(file_exists($orig_csf) ? 'si' : 'no'));
+	} else {
+		error_log("form_pagos chg_filename CSF: copy form OK -> ".$dest_csf);
+	}
+
+	// 2. Copiar a sce/ (para grid_pagos y tesorería)
+	$ok_csf_sce = @copy($dest_csf, $dest_csf_sce);
+	if (!$ok_csf_sce) {
+		error_log("form_pagos chg_filename CSF: ERROR copy sce origen=".$dest_csf." destino=".$dest_csf_sce." existe_origen=".(file_exists($dest_csf) ? 'si' : 'no'));
+	} else {
+		error_log("form_pagos chg_filename CSF: copy sce OK -> ".$dest_csf_sce);
+	}
+
+	// 3. Copiar a carpeta del aspirante en sce_asp/
+	$ok_csf_asp = @copy($dest_csf, $dest_csf_asp);
+	if (!$ok_csf_asp) {
+		error_log("form_pagos chg_filename CSF: ERROR copy asp origen=".$dest_csf." destino=".$dest_csf_asp." existe_origen=".(file_exists($dest_csf) ? 'si' : 'no')." existe_carpeta=".(is_dir($ruta_asp_csf) ? 'si' : 'no'));
+	} else {
+		error_log("form_pagos chg_filename CSF: copy asp OK -> ".$nw_csf_asp);
+	}
+
+	// 4. Eliminar original solo si las tres copias existen
+	if (basename($orig_csf) !== $nw_csf && file_exists($dest_csf) && file_exists($dest_csf_sce) && file_exists($dest_csf_asp)) {
+		$ok_del_csf = @unlink($orig_csf);
+		if (!$ok_del_csf) {
+			error_log("form_pagos chg_filename CSF: WARN no se pudo eliminar original " . $orig_csf);
+		} else {
+			error_log("form_pagos chg_filename CSF: original eliminado " . basename($orig_csf));
+		}
+	}
+
+	// 5. Actualizar doc_csf en sce.pagos
+	$update_csf = "UPDATE sce.pagos SET doc_csf='".$nw_csf."' WHERE id_pago='".{id_pago}."'";
+	sc_exec_sql($update_csf);
+	{doc_csf} = $nw_csf;
+
+	// 6. Actualizar asp_requisitos si se encontró num_req para CSF
+	if ($num_req_csf !== '') {
+		$update_csf2 = "UPDATE sce_asp.asp_requisitos SET archivo='".$nw_csf_asp."' WHERE login_FK='".[usr_login]."' AND num_req=".$num_req_csf;
+		sc_exec_sql($update_csf2);
+	}
+
+	error_log("form_pagos chg_filename CSF: FIN - doc_csf y asp_requisitos actualizados");
+} else {
+	error_log("form_pagos chg_filename CSF: SKIP - doc_csf vacío");
 }
