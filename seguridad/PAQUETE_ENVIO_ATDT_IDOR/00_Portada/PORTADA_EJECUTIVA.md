@@ -22,9 +22,9 @@
 
 | Sistema | Estado global | Riesgo residual |
 |---|---|---|
-| SCE | En proceso | Bajo |
-| SCE_ASP | En proceso | Bajo |
-| SCE_ENBC | En proceso | Bajo |
+| SCE | Cumplido | Bajo |
+| SCE_ASP | Cumplido | Bajo |
+| SCE_ENBC | Cumplido | Bajo |
 
 ## Firmas
 

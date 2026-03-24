@@ -19,9 +19,9 @@ Este paquete esta organizado para envio formal y revision tecnica.
 - `99_Referencias/`
   - referencias tecnicas (ATDT, OWASP, ScriptCase).
 
-## Archivo de capturas para responsable operativo
+## Evidencia operativa
 
-- `CAPTURAS_PENDIENTES_FERNANDO.md` — Lista detallada de 10 pruebas con instrucciones paso a paso para que responsable operativo tome las capturas necesarias (Anexo E).
+- La evidencia visual y tecnica consolidada se integra directamente en `04_Anexos/EVIDENCIAS/` y en el informe maestro (Anexo E/F/H).
 
 ## Orden recomendado de llenado (ya completado)
 

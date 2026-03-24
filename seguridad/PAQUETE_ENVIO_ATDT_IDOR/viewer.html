@@ -262,7 +262,7 @@
         if (visitedDirs.has(normalizedDir)) return;
         visitedDirs.add(normalizedDir);
 
-        const res = await fetch(dir);
+        const res = await fetch(dir, { cache: "no-store" });
         if (!res.ok) return;
         const html = await res.text();
         const doc = new DOMParser().parseFromString(html, "text/html");
@@ -294,7 +294,7 @@
 
     async function loadFile(path) {
       try {
-        const res = await fetch(path);
+        const res = await fetch(path, { cache: "no-store" });
         if (!res.ok) throw new Error("No se pudo cargar el archivo.");
         const text = await res.text();
         const withMermaidPlaceholders = transformMermaidFences(text);

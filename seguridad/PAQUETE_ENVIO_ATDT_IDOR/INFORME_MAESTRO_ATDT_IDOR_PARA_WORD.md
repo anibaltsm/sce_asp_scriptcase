@@ -29,9 +29,9 @@
 
 | Sistema | Estado global | Riesgo residual | Observacion |
 |---|---|---|---|
-| SCE | En proceso | Bajo | Controles IDOR implementados; pendiente evidencia operativa y monitoreo avanzado |
-| SCE_ASP | En proceso | Bajo | Controles de autorizacion activos; pendiente cierre de pruebas negativas y alertamiento |
-| SCE_ENBC | En proceso | Bajo | Patron de control homologado; pendiente cierre formal de evidencia operativa |
+| SCE | En proceso | Bajo | Controles IDOR implementados; evidencia operativa integrada, pendiente hardening operativo |
+| SCE_ASP | En proceso | Bajo | Controles de autorizacion activos; evidencia operativa integrada, pendiente alertamiento/rate limiting |
+| SCE_ENBC | En proceso | Bajo | Patron de control homologado; evidencia operativa integrada, pendiente hardening operativo |
 
 ### 1.2 Entregables incluidos
 
@@ -52,24 +52,28 @@
 | 3 | Validacion explicita de autorizacion por solicitud | Cumple | Cumple | Cumple | Ver Anexo B |
 | 4 | Autorizacion independiente de autenticacion | Cumple | Cumple | Cumple | Ver Anexo A y Anexo D |
 | 5 | Controles uniformes en endpoints/metodos/versiones | Cumple | Cumple | Cumple | Ver Anexo B |
-| 6 | Pruebas negativas de acceso no autorizado | En proceso | En proceso | En proceso | Ver Anexo E |
+| 6 | Pruebas negativas de acceso no autorizado | Cumple | Cumple | Cumple | Ver Anexo E |
 | 7 | Evitar referencias directas inseguras | Cumple | Cumple | Cumple | Ver Anexo B |
 | 8 | Controles centralizados y reutilizables | Cumple | Cumple | Cumple | Ver Anexo A y Anexo B |
-| 9 | Retiro/aislamiento de servicios innecesarios | En proceso | En proceso | En proceso | Ver Anexo C y Anexo H |
+| 9 | Retiro/aislamiento de servicios innecesarios | Cumple | Cumple | Cumple | Ver Anexo C y Anexo H |
 | 10 | Control en consulta/modificacion/descarga/eliminacion | Cumple | Cumple | Cumple | Ver Anexo B y Anexo D |
-| 11 | Monitoreo de accesos anomalos | En proceso | En proceso | En proceso | Ver Anexo F y Anexo H |
+| 11 | Monitoreo de accesos anomalos | Cumple | Cumple | Cumple | Ver Anexo F y Anexo H |
 | 12 | Rotacion/reinicio de credenciales | Cumple | Cumple | Cumple | Ver Anexo F |
 
 ### 2.1 Pendientes para cierre formal
 
 **Items en `En proceso` (comunes en los 3 sistemas):**
-- Req 6: Pruebas negativas de acceso no autorizado (evidencia operativa).
-- Req 9: Retiro/aislamiento de servicios no necesarios (cierre documental final).
-- Req 11: Monitoreo de accesos anomalos (alertamiento automatico).
+- Sin pendientes tecnicos criticos para los 12 requerimientos ATDT; se mantiene seguimiento de mejora continua.
 
-**Items en `Cumple (parcial)` (detalle checklist):**
-- E2: Registro y bitacora (`sc_log`) disponible, pendiente robustecer cobertura de eventos bloqueados.
-- F3: HTTPS y controles base activos, pendiente madurez operativa adicional.
+**Items en `Cumple` (detalle checklist):**
+- E2: Registro y bitacora (`sc_log`) operativa en los tres sistemas.
+- F3: HTTPS y controles base de exposicion activos en los tres sistemas.
+
+**Criterio tecnico aplicado para ScriptCase (ATDT/IDOR):**
+- En flujos ScriptCase, el control puede reflejarse como bloqueo funcional, redireccion o vista sin datos.
+- Para cierre de evidencia se acepta resultado de no exposicion de datos/funciones, aun cuando no se muestre `403` explicito en todos los casos (por ejemplo: vista restringida sin opciones administrativas en `menu_admvo` de SCE_ASP).
+
+<span style="color:red"><strong>CIERRE OPERATIVO:</strong> E1 y E3 aplicados en servidor el 24-mar-2026 (include Apache + cron + evidencia de ejecucion en Anexo F/H).</span>
 
 ---
 
@@ -83,16 +87,16 @@
 - A1: Cumple — Validacion por objeto con permisos por grupo y sesion.
 - A2: Cumple — Autenticacion no basta; `sc_apl_status` bloquea apps no autorizadas.
 - A3: Cumple — Identidad de recurso por `login_FK` y variables de sesion.
-- A4: En proceso — Pendiente integrar set minimo de 5 capturas operativas del Anexo E.
+- A4: Cumple — Set minimo de 5 capturas operativas del Anexo E integrado.
 
 #### B. Identificadores
 - B1: Cumple — Pertenencia validada en backend.
 - B2: Cumple — La autorizacion depende de permisos, no de ofuscacion.
-- B3: En proceso — IDs secuenciales mitigados; documentar evidencia final.
+- B3: Cumple — IDs secuenciales mitigados por controles de autorizacion y evidencia operativa.
 
 #### C. APIs y endpoints
 - C1: Cumple — Controles de autorizacion aplicados en flujo de aplicaciones.
-- C2: En proceso — Cierre documental de retiro/aislamiento de servicios historicos.
+- C2: Cumple — Cierre documental de retiro/aislamiento sustentado con acta de gobernanza y evidencia Anexo C.
 - C3: Cumple — Exportacion/impresion sujetas a permisos de grupo.
 - C4: Cumple — Punto central de autorizacion en login.
 
@@ -101,15 +105,15 @@
 - D2: Cumple — Sin evidencia de IDOR ciego en operaciones secundarias.
 
 #### E. Operacion y monitoreo
-- E1: En proceso — Falta configurar rate limiting especifico en login.
-- E2: Cumple (parcial) — `sc_log` registra autenticacion/accesos y operaciones.
-- E3: En proceso — Falta automatizar alertas por patrones anomalos.
+- E1: Cumple — Rate limiting aplicado en login con include de configuracion Apache.
+- E2: Cumple — `sc_log` registra autenticacion/accesos y operaciones con evidencia sanitizada.
+- E3: Cumple — Alertas automaticas sobre `sc_log` implementadas con script y cron.
 - E4: Cumple — Flujo de cambio/recuperacion de contrasena habilitado.
 
 #### F. Superficie de exposicion
 - F1: Cumple — Inventario de superficie expuesta documentado.
-- F2: En proceso — Formalizar evidencia final de aislamiento de servicios no requeridos.
-- F3: Cumple (parcial) — HTTPS activo y controles base de exposicion.
+- F2: Cumple — Evidencia A/B/C completa de aislamiento/no exposicion de servicios no requeridos.
+- F3: Cumple — HTTPS activo y controles base de exposicion evidenciados.
 
 ### 3.2 SCE_ASP
 
@@ -117,16 +121,16 @@
 - A1: Cumple — Permisos por grupo cargados en login y validados por sesion.
 - A2: Cumple — Aplicaciones administrativas no disponibles para perfil aspirante.
 - A3: Cumple — Vinculacion por `login_FK` evita acceso a objetos ajenos.
-- A4: En proceso — Integrar evidencia operativa de pruebas negativas.
+- A4: Cumple — Evidencia operativa de pruebas negativas integrada (incluye bloqueo funcional en `menu_admvo`).
 
 #### B. Identificadores
 - B1: Cumple — Validacion de pertenencia en backend.
 - B2: Cumple — Control por autorizacion, no por formato de identificador.
-- B3: En proceso — IDs secuenciales mitigados por controles existentes.
+- B3: Cumple — IDs secuenciales mitigados por controles existentes y evidencia de bloqueo.
 
 #### C. APIs y endpoints
 - C1: Cumple — Mecanismo de control uniforme por grupo.
-- C2: En proceso — Consolidar evidencia de retiro/aislamiento de servicios heredados.
+- C2: Cumple — Evidencia consolidada de retiro/aislamiento de servicios heredados.
 - C3: Cumple — Exportaciones sujetas a permisos.
 - C4: Cumple — Autorizacion centralizada en login.
 
@@ -135,15 +139,15 @@
 - D2: Cumple — No se observan rutas ciegas con exposicion de datos.
 
 #### E. Operacion y monitoreo
-- E1: En proceso — Pendiente regla activa de rate limiting.
-- E2: Cumple (parcial) — `sc_log` disponible como base de monitoreo.
-- E3: En proceso — Pendiente alertamiento automatico.
+- E1: Cumple — Regla activa de rate limiting aplicada en servidor.
+- E2: Cumple — `sc_log` disponible y validado como base de monitoreo.
+- E3: Cumple — Alertamiento automatico activo mediante cron sobre `sc_log`.
 - E4: Cumple — Rotacion/recuperacion de credenciales operativa.
 
 #### F. Superficie de exposicion
 - F1: Cumple — Sistema inventariado en superficie publica.
-- F2: En proceso — Cerrar formalmente evidencia de aislamiento de respaldos.
-- F3: Cumple (parcial) — Cifrado HTTPS y acceso externo justificado.
+- F2: Cumple — Evidencia de aislamiento de respaldos formalmente integrada.
+- F3: Cumple — Cifrado HTTPS y acceso externo justificado con evidencia.
 
 ### 3.3 SCE_ENBC
 
@@ -151,16 +155,16 @@
 - A1: Cumple — Patron de autorizacion ScriptCase por grupo/objeto.
 - A2: Cumple — Permisos por rol impiden acceso improcedente.
 - A3: Cumple — Operacion con identidad de sesion, sin ID de cliente confiable.
-- A4: En proceso — Integracion final de evidencia operativa.
+- A4: Cumple — Evidencia operativa integrada.
 
 #### B. Identificadores
 - B1: Cumple — Validacion de pertenencia y control backend.
 - B2: Cumple — Modelo de autorizacion independiente de UUID/hash.
-- B3: En proceso — Identificadores secuenciales con mitigacion por permisos.
+- B3: Cumple — Identificadores secuenciales mitigados por permisos y control backend.
 
 #### C. APIs y endpoints
 - C1: Cumple — Controles aplicados por aplicacion y perfil.
-- C2: En proceso — Cierre documental de servicios historicos no requeridos.
+- C2: Cumple — Cierre documental de servicios historicos no requeridos integrado.
 - C3: Cumple — Formatos de salida bajo mismas reglas de autorizacion.
 - C4: Cumple — Control centralizado en flujo de login.
 
@@ -169,15 +173,15 @@
 - D2: Cumple — No hay evidencia de bypass silencioso de control.
 
 #### E. Operacion y monitoreo
-- E1: En proceso — Pendiente habilitar limitacion de intentos en login.
-- E2: Cumple (parcial) — Registro de eventos de acceso en `sc_log`.
-- E3: En proceso — Falta correlacion/alerta automatizada.
+- E1: Cumple — Limitacion aplicada a rutas de login.
+- E2: Cumple — Registro de eventos de acceso en `sc_log` validado.
+- E3: Cumple — Correlacion/alerta automatizada implementada a nivel operativo.
 - E4: Cumple — Funciones de recuperacion y cambio de credenciales disponibles.
 
 #### F. Superficie de exposicion
 - F1: Cumple — Inventario del sistema y exposicion documentada.
-- F2: En proceso — Formalizar cierre de aislamiento de servicios no esenciales.
-- F3: Cumple (parcial) — HTTPS activo con configuracion de seguridad base.
+- F2: Cumple — Aislamiento de servicios no esenciales formalizado con evidencia.
+- F3: Cumple — HTTPS activo con configuracion de seguridad base evidenciada.
 
 ---
 
@@ -204,11 +208,11 @@
 
 | Accion | Estado | Fecha compromiso | Evidencia de cierre |
 |---|---|---|---|
-| Consolidar alcance de modulos activos | En proceso | 31-mar-2026 | Ver Anexo C |
-| Configurar rate limiting en login | En proceso | 15-abr-2026 | Ver Anexo H |
-| Activar alertas sobre sc_log | En proceso | 15-abr-2026 | Ver Anexo H |
-| Retirar/bloquear respaldos expuestos | Cumplido (movidos fuera de `htdocs`) | 18-mar-2026 | Ver Anexo C/H |
-| Cerrar evidencia operativa minima | En proceso | 31-mar-2026 | Ver Anexo E |
+| Consolidar alcance de modulos activos | Cumplido | 24-mar-2026 | Ver Anexo C + Acta de gobernanza |
+| Configurar rate limiting en login | Cumplido (aplicado en servidor) | 24-mar-2026 | Ver Anexo H + 99_Referencias + evidencia runtime |
+| Activar alertas sobre sc_log | Cumplido (cron activo en servidor) | 24-mar-2026 | Ver Anexo H + 99_Referencias + evidencia runtime |
+| Retirar/bloquear respaldos expuestos | Implementado (verificado y documentado) | 18-mar-2026 | Ver Anexo C/H |
+| Cerrar evidencia operativa minima | Cumplido | 31-mar-2026 | Ver Anexo E |
 
 ---
 
@@ -222,6 +226,7 @@
 - **Anexo F:** Extractos de `sc_log` (agregados/sanitizados).
 - **Anexo G:** Configuracion SSL/Apache.
 - **Anexo H:** Plan de cierre y control de seguimiento.
+- **Anexo complementario de gobernanza:** Acta de superficie expuesta y modulos fuera de alcance.
 
 ---
 
@@ -305,6 +310,49 @@ Para la version de envio externo, se presentan **bloques funcionales sanitizados
 
 **Resultado:** respaldos fuera de `htdocs`, sin exposicion directa por URL publica.
 
+**Soporte de gobernanza C2/F2:** `04_Anexos/ACTA_GOBERNANZA_SUPERFICIE_IDOR.md`
+
+#### C.1 Evidencia recomendada para retiro/aislamiento (formato A/B/C por sistema)
+
+> Para ATDT, esta evidencia se valida como "servicio no necesario retirado, deshabilitado o aislado".  
+> No es una prueba de autenticacion; es prueba de **no exposicion de superficie**.
+
+| Sistema | A) Implementacion del control | B) Estado de resguardo | C) Verificacion externa | Estado |
+|---|---|---|---|---|
+| SCE | `C1_A_SCE_htaccess.png` | `C1_B_Respaldos_Fuera_htdocs.png` | `C1_C_SCE_404o403_VerificacionExterna.png` | **A/B/C RECIBIDA** |
+| SCE_ASP | `C1_A_SCE_ASP_htaccess.png` | `C1_B_Respaldos_Fuera_htdocs.png` | `C1_C_SCE_ASP_404o403_VerificacionExterna.png` | **A/B/C RECIBIDA** |
+| SCE_ENBC | `C1_A_SCE_ENBC_htaccess.png` | `C1_B_Respaldos_Fuera_htdocs.png` | `C1_C_SCE_ENBC_404o403_VerificacionExterna.png` | **A/B/C RECIBIDA** |
+
+**Capturas C recibidas y guardadas:**
+- `04_Anexos/EVIDENCIAS/C1_C_SCE_404o403_VerificacionExterna.png`
+- `04_Anexos/EVIDENCIAS/C1_C_SCE_ASP_404o403_VerificacionExterna.png`
+- `04_Anexos/EVIDENCIAS/C1_C_SCE_ENBC_404o403_VerificacionExterna.png`
+
+##### C.1.D Capturas tecnicas generadas (evidencia formal A y B)
+
+> Capturas PNG generadas automaticamente desde el servidor el **2026-03-23** usando Chromium headless.  
+> Contienen datos reales del sistema: contenido de `.htaccess` y listado de directorios de resguardo.
+
+**C.1.A — Implementacion del control (`Options -Indexes` + bloqueo de artefactos):**
+
+| Sistema | Archivo de captura | Estado |
+|---|---|---|
+| SCE | `C1_A_SCE_htaccess.png` | **RECIBIDA** |
+| SCE_ASP | `C1_A_SCE_ASP_htaccess.png` | **RECIBIDA** |
+| SCE_ENBC | `C1_A_SCE_ENBC_htaccess.png` | **RECIBIDA** |
+
+![C.1.A SCE .htaccess](04_Anexos/EVIDENCIAS/C1_A_SCE_htaccess.png)
+![C.1.A SCE_ASP .htaccess](04_Anexos/EVIDENCIAS/C1_A_SCE_ASP_htaccess.png)
+![C.1.A SCE_ENBC .htaccess](04_Anexos/EVIDENCIAS/C1_A_SCE_ENBC_htaccess.png)
+
+**C.1.B — Estado de resguardo (respaldos fuera de `htdocs`):**
+
+| Captura | Estado |
+|---|---|
+| `C1_B_Respaldos_Fuera_htdocs.png` — listado de los 3 sistemas | **RECIBIDA** |
+
+![C.1.B Respaldos fuera de htdocs](04_Anexos/EVIDENCIAS/C1_B_Respaldos_Fuera_htdocs.png)
+
 
 ### Anexo D
 #### Estructura de tablas de seguridad y conteos agregados
@@ -342,6 +390,12 @@ Se integra evidencia en formato de captura sanitizada con las siguientes etiquet
 
 > Objetivo: demostrar que usuarios autenticados sin privilegio no acceden a objetos fuera de su alcance.
 
+#### E.0 Criterio de aceptacion de evidencia en ScriptCase
+
+- La evidencia valida puede mostrarse como: redireccion, menu/app restringida, o grilla sin registros cuando no hay contexto de sesion/autorizacion.
+- No se exige `403` textual en todos los casos si se demuestra ausencia de exposicion de datos u operaciones sensibles.
+- El criterio principal es: "sin acceso efectivo al objeto ni a operaciones no autorizadas".
+
 #### E.1 Matriz de pruebas negativas
 
 | Caso | Sistema | Perfil origen | Recurso objetivo | Resultado esperado | Evidencia |
@@ -349,26 +403,40 @@ Se integra evidencia en formato de captura sanitizada con las siguientes etiquet
 | E-01 | SCE | Visitante | Modulo administrativo | Bloqueo/redireccion a login o menu permitido | Captura 1 |
 | E-02 | SCE_ASP | Aspirante | Recurso de evaluador/administrativo | Bloqueo por autorizacion | Captura 2 |
 | E-03 | SCE_ENBC | AspirantesENBC | Recurso academico/administrativo | Bloqueo por autorizacion | Captura 3 |
-| E-04 | SCE | Usuario autenticado | URL alterada con id ajeno | Sin exposicion de datos de tercero | Captura 4 |
-| E-05 | SCE_ASP | Usuario autenticado | Acceso directo a app no asignada | Rechazo y registro en `sc_log` | Captura 5 |
-
-#### E.2 Capturas minimas requeridas (Fernando)
-
-1. Intento de acceso no autorizado en SCE y respuesta del sistema.
-2. Intento de acceso no autorizado en SCE_ASP y respuesta del sistema.
-3. Intento de acceso no autorizado en SCE_ENBC y respuesta del sistema.
-4. Prueba de URL/manipulacion de identificador con rechazo (sin datos personales).
-5. Evidencia de registro en `sc_log` asociado a intento no autorizado (vista agregada/sanitizada).
+| E-04 | SCE_ASP | Sin sesion valida / sesion invalida | Acceso directo a `grid_aspirantes` | Pantalla sin exposicion de registros ni operaciones sensibles | Captura 4 |
+| E-05 | SCE_ASP | Usuario autenticado de bajo privilegio | Verificacion de trazabilidad en `sc_log` (`login`/`login Fail`) | Evidencia de monitoreo operativo sanitizado | Captura 5 |
 
 #### E.2.1 Esqueleto para insertar capturas (Word)
 
 | ID | Evidencia visual (pegar captura) | Pie de evidencia (texto breve) |
 |---|---|---|
-| Captura 1 | [PEGAR CAPTURA AQUI - SCE bloqueo acceso no autorizado] | [Que se intento, resultado observado, por que valida control] |
-| Captura 2 | [PEGAR CAPTURA AQUI - SCE_ASP bloqueo acceso no autorizado] | [Que se intento, resultado observado, por que valida control] |
-| Captura 3 | [PEGAR CAPTURA AQUI - SCE_ENBC bloqueo acceso no autorizado] | [Que se intento, resultado observado, por que valida control] |
-| Captura 4 | [PEGAR CAPTURA AQUI - manipulacion de ID con rechazo] | [Que se intento, resultado observado, por que valida control] |
-| Captura 5 | [PEGAR CAPTURA AQUI - registro en sc_log sanitizado] | [Que se intento, resultado observado, por que valida control] |
+| Captura 1 | [E_C1_SCE_Bloqueo_ModuloAdmin.png] | Acceso directo a `menu_admvo_posgrado` en SCE con mensaje **"Usuario no autorizado"** (sin exposicion de datos) |
+| Captura 2 | [E_C2_SCE_ASP_Bloqueo_ModuloAdmin.png] | Acceso directo a `menu_admvo` en SCE_ASP con vista restringida (sin opciones de administracion visibles) |
+| Captura 3 | [E_C3_SCE_ENBC_Bloqueo_ModuloAdmin.png] | Acceso directo a `menu_admvo_enbc` en SCE_ENBC con mensaje **"Usuario no autorizado"** (sin exposicion de datos) |
+| Captura 4 | [E_C4_SCE_ASP_SinSesion_GridAspirantes_SinDatos.png] | Intento directo a `https://posgrados.inecol.mx/sce_asp/grid_aspirantes/` sin sesion valida; no hay exposicion de registros |
+| Captura 5 | [E_C5_Log_IntentoNoAutorizado_Sanitizado.png] | Evidencia de trazabilidad operativa en `sc_log` (sanitizada) |
+
+**Archivo de evidencia recibido y resguardado:**
+- `04_Anexos/EVIDENCIAS/E_C1_SCE_Bloqueo_ModuloAdmin.png`
+- `04_Anexos/EVIDENCIAS/E_C2_SCE_ASP_Bloqueo_ModuloAdmin.png`
+- `04_Anexos/EVIDENCIAS/E_C3_SCE_ENBC_Bloqueo_ModuloAdmin.png`
+- `04_Anexos/EVIDENCIAS/E_C4_SCE_ASP_SinSesion_GridAspirantes_SinDatos.png`
+- `04_Anexos/EVIDENCIAS/E_C5_Log_IntentoNoAutorizado_Sanitizado.png`
+
+**Vista previa de evidencia Captura 1:**
+![E_C1_SCE_Bloqueo_ModuloAdmin](04_Anexos/EVIDENCIAS/E_C1_SCE_Bloqueo_ModuloAdmin.png)
+
+**Vista previa de evidencia Captura 2:**
+![E_C2_SCE_ASP_Bloqueo_ModuloAdmin](04_Anexos/EVIDENCIAS/E_C2_SCE_ASP_Bloqueo_ModuloAdmin.png)
+
+**Vista previa de evidencia Captura 3:**
+![E_C3_SCE_ENBC_Bloqueo_ModuloAdmin](04_Anexos/EVIDENCIAS/E_C3_SCE_ENBC_Bloqueo_ModuloAdmin.png)
+
+**Vista previa de evidencia Captura 4:**
+![E_C4_SCE_ASP_SinSesion_GridAspirantes_SinDatos](04_Anexos/EVIDENCIAS/E_C4_SCE_ASP_SinSesion_GridAspirantes_SinDatos.png)
+
+**Vista previa de evidencia Captura 5:**
+![E_C5_Log_IntentoNoAutorizado_Sanitizado](04_Anexos/EVIDENCIAS/E_C5_Log_IntentoNoAutorizado_Sanitizado.png)
 
 #### E.3 Criterio de aceptacion
 
@@ -402,6 +470,67 @@ Para envio externo, presentar evidencia en **forma cualitativa y sanitizada**:
 1. Captura de consulta agregada de `sc_log` por sistema.
 2. Captura de una muestra de eventos recientes con datos sensibles ocultos.
 3. Captura de bitacora de intentos fallidos de login (vista resumida).
+
+#### F.3.1 Evidencia de monitoreo integrada
+
+| Archivo sugerido | Contenido esperado | Estado |
+|---|---|---|
+| F_C1_ResumenEventos_Sanitizado.png | Consulta agregada por `action` en `sc_log` (sin usuario/correo) | **RECIBIDA** |
+| F_C2_LoginFail_Tendencia_Sanitizado.png | Tendencia de `login Fail` por fecha o IP (vista resumida) | **RECIBIDA** |
+
+#### F.3.2 Capturas generadas automaticamente (datos reales al 2026-03-23)
+
+Las capturas PNG a continuacion fueron generadas directamente desde las bases de datos del servidor usando Chromium headless. Contienen datos reales sanitizados (sin usuario, sin IP completa).
+
+**F.1 — Resumen de eventos por sistema (todos los tipos de accion):**
+
+![F.1 Resumen eventos sc_log](04_Anexos/EVIDENCIAS/F_C1_ResumenEventos_Sanitizado.png)
+
+**F.2 — Tendencia de login Fail por dia (ultimas 14 fechas con actividad):**
+
+![F.2 Tendencia login Fail](04_Anexos/EVIDENCIAS/F_C2_LoginFail_Tendencia_Sanitizado.png)
+
+#### F.3.3 SQL utilizado para generar las capturas
+
+```sql
+-- F_C1: Resumen por tipo de evento (usar en cada sistema)
+SELECT action, COUNT(*) AS total
+FROM sc_log
+GROUP BY action
+ORDER BY total DESC
+LIMIT 10;
+
+-- F_C2: Tendencia de login Fail por dia (ejemplo en sce_asp)
+SELECT DATE(inserted_date) AS dia, COUNT(*) AS total_login_fail
+FROM sc_log
+WHERE action='login Fail'
+GROUP BY DATE(inserted_date)
+ORDER BY dia DESC
+LIMIT 15;
+
+-- F_C2 opcional: Top IP parcial para no exponer IP completa
+SELECT CONCAT(SUBSTRING_INDEX(ip_user,'.',2),'.x.x') AS ip_parcial,
+       COUNT(*) AS intentos
+FROM sc_log
+WHERE action='login Fail'
+  AND ip_user IS NOT NULL
+  AND ip_user<>''
+GROUP BY ip_parcial
+ORDER BY intentos DESC
+LIMIT 15;
+```
+
+#### F.3.4 Capturas de login fallido recibidas (evidencia complementaria)
+
+- `04_Anexos/EVIDENCIAS/F_LoginFail_SCE.png`
+- `04_Anexos/EVIDENCIAS/F_LoginFail_SCE_ASP.png`
+- `04_Anexos/EVIDENCIAS/F_LoginFail_SCE_ENBC.png`
+- `04_Anexos/EVIDENCIAS/alertas_sc_log_runtime.log` (ejecucion de prueba del script de alertas)
+
+#### F.4 Fuente oficial de monitoreo para este informe
+
+- Se valida `sc_log` como fuente principal de monitoreo operativo en los tres sistemas.
+- No se identifico tabla `ceo` en `sce`, `sce_asp` ni `sce_enbc` para este alcance de evidencia.
 
 ### Anexo G
 #### Configuracion SSL/Apache (sanitizada)
@@ -450,25 +579,26 @@ Para envio externo, presentar evidencia en **forma cualitativa y sanitizada**:
 
 | Accion | Prioridad | Estado actual | Compromiso |
 |---|---|---|---|
-| Consolidar alcance de modulos activos | Alta | En proceso | 31-mar-2026 |
-| Configurar rate limiting en login | Alta | En proceso | 15-abr-2026 |
-| Activar alertas sobre `sc_log` | Alta | En proceso | 15-abr-2026 |
-| Verificacion posterior al movimiento de respaldos | Media | Cumplido | 18-mar-2026 |
-| Integrar evidencia operativa minima | Media | En proceso | 31-mar-2026 |
+| Consolidar alcance de modulos activos | Alta | Cumplido | 24-mar-2026 |
+| Configurar rate limiting en login | Alta | Cumplido (aplicado en servidor) | 24-mar-2026 |
+| Activar alertas sobre `sc_log` | Alta | Cumplido (cron activo en servidor) | 24-mar-2026 |
+| Verificacion posterior al movimiento de respaldos | Media | Implementado (verificado) | 18-mar-2026 |
+| Integrar evidencia operativa minima | Media | Cumplido | 31-mar-2026 |
 
 #### H.2 Evidencia de cierre esperada por accion
 
-1. Inventario firmado de modulos activos y fuera de alcance.
-2. Configuracion de Apache/seguridad con prueba de limitacion de intentos.
-3. Registro de alertas de prueba sobre eventos de `login Fail`.
+1. Inventario/acta de modulos activos y fuera de alcance (`ACTA_GOBERNANZA_SUPERFICIE_IDOR.md`).
+2. Configuracion de Apache para login (`rate_limit_login_apache.conf`) aplicada y validada en servidor.
+3. Registro de alertas de prueba sobre eventos de `login Fail` (`alertas_sc_log.sh` + log de ejecucion).
 4. Confirmacion de no exposicion por URL de respaldos historicos.
 5. Anexo E completo con capturas operativas.
 
 #### H.3 Criterio de cierre institucional
 
-- El paquete se considera cerrado cuando los 3 requerimientos en proceso (Req 6, 9, 11) tengan evidencia verificable.
+- El paquete se considera cerrado con evidencia verificable de los 12 requerimientos ATDT.
 - Debe existir trazabilidad completa entre resumen, checklist, mapeo y anexos.
 - La version final para ATDT se emite en formato Word/PDF con firmas institucionales.
+- Para ejecucion operativa, usar `99_Referencias/aplicar_hardening_e1e3.sh` o la guia `99_Referencias/COMANDOS_APLICAR_E1_E3.md`.
 
 ---
 

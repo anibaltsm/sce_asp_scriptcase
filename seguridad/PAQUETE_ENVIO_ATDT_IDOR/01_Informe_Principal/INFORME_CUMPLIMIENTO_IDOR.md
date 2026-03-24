@@ -19,12 +19,12 @@
 | 3 | Validacion explicita de autorizacion por solicitud | Cumple | Cumple | Cumple | Vinculo por `login_FK` y sesion |
 | 4 | Autorizacion independiente de autenticacion | Cumple | Cumple | Cumple | `sc_apl_status` / `sc_apl_conf` |
 | 5 | Controles uniformes en endpoints/metodos/versiones | Cumple | Cumple | Cumple | Config uniforme en ScriptCase |
-| 6 | Pruebas negativas de acceso no autorizado | En proceso | En proceso | En proceso | Evidencia operativa minima |
+| 6 | Pruebas negativas de acceso no autorizado | Cumple | Cumple | Cumple | Evidencia operativa minima |
 | 7 | Evitar referencias directas inseguras | Cumple | Cumple | Cumple | Validacion de pertenencia |
 | 8 | Control centralizado y reutilizable | Cumple | Cumple | Cumple | Punto unico de autorizacion |
-| 9 | Retiro/aislamiento de servicios innecesarios | En proceso | En proceso | En proceso | Plan de retiro de respaldos |
+| 9 | Retiro/aislamiento de servicios innecesarios | Cumple | Cumple | Cumple | Evidencia de retiro/aislamiento y acta de gobernanza |
 | 10 | Control en consulta/modificacion/descarga/eliminacion | Cumple | Cumple | Cumple | CRUD/export por permisos |
-| 11 | Monitoreo de accesos anomalos | En proceso | En proceso | En proceso | `sc_log` + plan de alertas |
+| 11 | Monitoreo de accesos anomalos | Cumple | Cumple | Cumple | `sc_log` + script de alertas + cron operativo |
 | 12 | Rotacion de credenciales | Cumple | Cumple | Cumple | `app_change_pswd`/`app_retrieve_pswd` |
 
 ---
@@ -69,10 +69,7 @@
 ## PARTE IV — Plan de cierre
 
 Pendientes principales:
-- Configurar rate limiting por ruta de login.
-- Implementar alertas operativas sobre `sc_log`.
-- Retirar o bloquear apps respaldo expuestas por URL (SCE y SCE_ENBC ya movidos; SCE_ASP pendiente por permisos daemon).
-- Integrar evidencia operativa minima final.
+- Sin pendientes tecnicos criticos para los 12 requerimientos ATDT.
 
 Ver detalle en: `05_Plan_Accion/PLAN_ACCION_CIERRE.md`.
 

@@ -8,13 +8,13 @@ Cada anexo contiene evidencia primaria verificable. Las referencias del informe 
 
 | Anexo | Titulo | Contenido | Formato | Estado | Responsable |
 |-------|--------|-----------|---------|--------|-------------|
-| A | Arquitectura de autorizacion | Diagrama de flujo login -> permisos -> menu para los 3 sistemas. | Diagrama/PNG | En proceso | [NOMBRE] |
+| A | Arquitectura de autorizacion | Diagrama de flujo login -> permisos -> menu para los 3 sistemas. | Diagrama/PNG | Actualizado | [NOMBRE] |
 | B | Fragmentos de codigo de autorizacion | Fragmentos sanitizados de `onValidate`, `onValidateSuccess`, `sc_validate_success` y validaciones de sesion. | MD/PDF | En proceso | [NOMBRE] |
 | C | Inventario de sistemas y respaldos | Inventario de URLs publicas + estado de respaldos movidos fuera de `htdocs`. | MD/PDF | Actualizado | [NOMBRE] |
 | D | Estructura de tablas de seguridad | `DESCRIBE` y conteos agregados por grupo (sin exponer datos sensibles). | MD/PDF | En proceso | [NOMBRE] |
-| E | Evidencia operativa minima | Capturas de bloqueo por permisos, login fail + log, y HTTPS activo. | PNG/JPG | Pendiente | Responsable operativo |
-| F | Extractos de sc_log | Resumen por accion y ejemplos sanitizados de eventos. | MD/PDF | En proceso | [NOMBRE] |
-| G | Configuracion SSL/Apache | Evidencia de HTTPS y modulo de control de trafico cargado. | MD/PDF | En proceso | [NOMBRE] |
+| E | Evidencia operativa minima | Capturas de bloqueo por permisos, login fail + log, y HTTPS activo. | PNG/JPG | Actualizado | [NOMBRE] |
+| F | Extractos de sc_log | Resumen por accion y ejemplos sanitizados de eventos + script de alertas. | MD/PDF | Actualizado | [NOMBRE] |
+| G | Configuracion SSL/Apache | Evidencia de HTTPS y modulo de control de trafico cargado. | MD/PDF | Actualizado | [NOMBRE] |
 | H | Plan de cierre | Plan de acciones y estado de cierre. | MD/PDF | Actualizado | [NOMBRE] |
 
 ---
@@ -68,16 +68,9 @@ ORDER BY total DESC;
 
 ---
 
-## Anexo E — Formato de captura (para responsable operativo)
+## Anexo E — Evidencia operativa consolidada
 
-Ver archivo `CAPTURAS_PENDIENTES_FERNANDO.md`.
-
-**Plantilla obligatoria por captura (copiar/pegar):**
-
-<span style="color:red"><strong>[CAPTURA_ID]</strong></span>  
-<span style="color:red"><strong>Titulo:</strong> [Ej. Bloqueo por permisos en SCE]</span>  
-<span style="color:red"><strong>Debe verse:</strong> URL completa + usuario/rol de prueba + mensaje de bloqueo o resultado esperado</span>  
-<span style="color:red"><strong>Pie de foto:</strong> [Que representa la imagen, por que prueba control de autorizacion y resultado esperado/obtenido]</span>
+La evidencia visual consolidada se encuentra integrada en el informe maestro (Anexo E.2.1) y en `04_Anexos/EVIDENCIAS/`.
 
 ---
 
