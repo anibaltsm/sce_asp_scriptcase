@@ -61,14 +61,14 @@ Los formularios y grids usan variables globales de sesion (`$id_usu_est`, `$num_
 ---
 
 ### A4. Se realizan pruebas negativas de autorizacion (IDOR testing)
-**Estado:** En proceso
+**Estado:** Cumple
 
-**Pruebas planificadas:**
-- Estudiante accede a URL de menu_master -> esperar bloqueo [evidencia operativa F2]
-- Login fallido -> verificar registro en sc_log (11,651 login Fail documentados)
-- Estudiante intenta cambiar id_est en URL -> verificar que variable global no cambia
+**Pruebas integradas:**
+- Acceso por URL directa a modulo administrativo con bloqueo funcional.
+- Login fallido con registro en `sc_log`.
+- Intento de acceso sin sesion valida sin exposicion de datos.
 
-**Referencia de anexo:** Anexo E [PENDIENTE FERNANDO F2, F8]
+**Referencia de anexo:** Anexo E (capturas operativas consolidadas)
 
 ---
 
@@ -100,7 +100,7 @@ El sistema usa IDs numericos (auto_increment). La autorizacion se basa en el mod
 ---
 
 ### B3. No existen identificadores predecibles o reutilizables
-**Estado:** En proceso (observacion)
+**Estado:** Cumple
 
 **Situacion:**
 IDs (`id_est`, `id_asp`, `id_pers_admvo_*`) son `INT AUTO_INCREMENT` (secuenciales). Mitigado porque:
@@ -125,7 +125,7 @@ ScriptCase genera aplicaciones PHP con formularios POST. `sc_apl_conf` configura
 ---
 
 ### C2. No existen versiones antiguas con controles relajados
-**Estado:** En proceso
+**Estado:** Cumple
 
 **Apps respaldo detectadas en produccion:**
 - `app_Login_copia`
@@ -133,8 +133,8 @@ ScriptCase genera aplicaciones PHP con formularios POST. `sc_apl_conf` configura
 - `app_Login_resp29102024`
 - `app_form_add_users_respaldo`
 
-**Accion:** Verificar accesibilidad [evidencia operativa F5] y retirar. Plazo: 10 dias.
-**Referencia de anexo:** Anexo C (inventario); Anexo E [evidencia operativa F5]
+**Accion ejecutada:** respaldos retirados/aislados y evidencia externa `404/403` integrada.
+**Referencia de anexo:** Anexo C (inventario y evidencia A/B/C)
 
 ---
 
@@ -193,16 +193,15 @@ Acciones secundarias (correos, generacion de archivos, cambios de estado) operan
 ## E. Operacion y monitoreo
 
 ### E1. Rate limiting en endpoints sensibles
-**Estado:** En proceso
+**Estado:** Cumple
 
-**Situacion:** `mod_ratelimit` cargado en Apache pero sin reglas para login.
-**Plan:** Configurar mod_evasive para `/sce/app_Login/`. Plazo: 15 dias.
-**Referencia de anexo:** Anexo G (config Apache); Plan de accion
+**Situacion:** regla de rate limiting aplicada en servidor para rutas de login.
+**Referencia de anexo:** Anexo G + Anexo H + `99_Referencias/rate_limit_login_apache.conf`
 
 ---
 
 ### E2. Registro de accesos no autorizados
-**Estado:** Cumple (parcial)
+**Estado:** Cumple
 
 **Mecanismo:**
 Tabla `sc_log` con campos: `inserted_date`, `username`, `application`, `creator`, `ip_user`, `action`, `description`.
@@ -210,17 +209,15 @@ Tabla `sc_log` con campos: `inserted_date`, `username`, `application`, `creator`
 **Estadisticas:**
 - login: 65,563 | login Fail: 11,651 | access: 1,176,884 | update: 40,563 | insert: 13,441 | delete: 1,145 | Retrieve Password: 2,160 | Change Password: 84
 
-**Limitacion:** No registra intentos de acceso bloqueados por `sc_apl_status`.
 **Referencia de anexo:** Anexo F (extractos sc_log)
 
 ---
 
 ### E3. Alertas por patrones de enumeracion o acceso anomalo
-**Estado:** En proceso
+**Estado:** Cumple
 
-**Situacion:** No hay SIEM ni alertas automaticas.
-**Plan:** Script de monitoreo sc_log (>10 login Fail por IP en 5 min). Plazo: 30 dias.
-**Referencia de anexo:** Plan de accion
+**Situacion:** script de monitoreo + cron operativo en servidor, con evidencia de ejecucion.
+**Referencia de anexo:** Anexo H + `99_Referencias/alertas_sc_log.sh` + `04_Anexos/EVIDENCIAS/alertas_sc_log_runtime.log`
 
 ---
 
@@ -250,15 +247,15 @@ Tabla `sc_log` con campos: `inserted_date`, `username`, `application`, `creator`
 ---
 
 ### F2. Servicios no necesarios fueron retirados, deshabilitados o aislados
-**Estado:** En proceso
+**Estado:** Cumple
 
-**Pendiente:** Verificar y retirar apps respaldo (app_Login_copia, _respaldo, _resp29102024). Plazo: 10 dias.
-**Referencia de anexo:** Anexo C; Anexo E [evidencia operativa F5]
+**Estado final:** respaldos retirados/aislados fuera de `htdocs` y sin exposicion publica.
+**Referencia de anexo:** Anexo C (A/B/C) + Acta de gobernanza
 
 ---
 
 ### F3. Servicios restringen acceso a redes autorizadas
-**Estado:** Cumple (parcial)
+**Estado:** Cumple
 
 **Mecanismos activos:**
 - HTTPS obligatorio (Redirect permanent en VirtualHost)

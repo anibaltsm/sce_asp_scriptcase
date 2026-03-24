@@ -1,4 +1,4 @@
-# Indice de anexos de evidencia — Paquete IDOR/BOLA ATDT
+# Indice de anexos de evidencia — Paquete IDOR/BOLA
 
 Cada anexo contiene evidencia primaria verificable. Las referencias del informe principal y los checklists apuntan a estos anexos.
 
@@ -8,18 +8,18 @@ Cada anexo contiene evidencia primaria verificable. Las referencias del informe 
 
 | Anexo | Titulo | Contenido | Formato | Estado | Responsable |
 |-------|--------|-----------|---------|--------|-------------|
-| A | Arquitectura de autorizacion | Diagrama de flujo login -> permisos -> menu para los 3 sistemas. | Diagrama/PNG | Actualizado | [NOMBRE] |
-| B | Fragmentos de codigo de autorizacion | Fragmentos sanitizados de `onValidate`, `onValidateSuccess`, `sc_validate_success` y validaciones de sesion. | MD/PDF | En proceso | [NOMBRE] |
-| C | Inventario de sistemas y respaldos | Inventario de URLs publicas + estado de respaldos movidos fuera de `htdocs`. | MD/PDF | Actualizado | [NOMBRE] |
-| D | Estructura de tablas de seguridad | `DESCRIBE` y conteos agregados por grupo (sin exponer datos sensibles). | MD/PDF | En proceso | [NOMBRE] |
-| E | Evidencia operativa minima | Capturas de bloqueo por permisos, login fail + log, y HTTPS activo. | PNG/JPG | Actualizado | [NOMBRE] |
-| F | Extractos de sc_log | Resumen por accion y ejemplos sanitizados de eventos + script de alertas. | MD/PDF | Actualizado | [NOMBRE] |
-| G | Configuracion SSL/Apache | Evidencia de HTTPS y modulo de control de trafico cargado. | MD/PDF | Actualizado | [NOMBRE] |
-| H | Plan de cierre | Plan de acciones y estado de cierre. | MD/PDF | Actualizado | [NOMBRE] |
+| A | Arquitectura de autorizacion | Diagrama de flujo login -> permisos -> menu para los 3 sistemas. | Diagrama/PNG | Integrado | [NOMBRE] |
+| B | Fragmentos de codigo de autorizacion | Fragmentos con minimizacion de datos de `onValidate`, `onValidateSuccess`, `sc_validate_success` y validaciones de sesion. | MD/PDF | Integrado | [NOMBRE] |
+| C | Inventario de sistemas y respaldos | Inventario de URLs publicas + estado de respaldos movidos fuera de `htdocs`. | MD/PDF | Integrado | [NOMBRE] |
+| D | Estructura de tablas de seguridad | `DESCRIBE` y conteos agregados por grupo (sin exponer datos sensibles). | MD/PDF | Integrado | [NOMBRE] |
+| E | Evidencia operativa minima | Capturas de bloqueo por permisos, login fail + log, y HTTPS activo. | PNG/JPG | Integrado | [NOMBRE] |
+| F | Extractos de sc_log | Resumen por accion y ejemplos con minimizacion/seudonimizacion de eventos + script de alertas. | MD/PDF | Integrado | [NOMBRE] |
+| G | Configuracion SSL/Apache | Evidencia de HTTPS y modulo de control de trafico cargado. | MD/PDF | Integrado | [NOMBRE] |
+| H | Plan de cierre | Plan de acciones y estado de cierre. | MD/PDF | Integrado | [NOMBRE] |
 
 ---
 
-## Anexo B — Minimo recomendado (sanitizado)
+## Anexo B — Minimo recomendado (con minimizacion de datos)
 
 Incluir solo fragmentos necesarios (sin rutas absolutas de servidor ni datos sensibles):
 
@@ -70,7 +70,7 @@ ORDER BY total DESC;
 
 ## Anexo E — Evidencia operativa consolidada
 
-La evidencia visual consolidada se encuentra integrada en el informe maestro (Anexo E.2.1) y en `04_Anexos/EVIDENCIAS/`.
+La evidencia visual consolidada se encuentra integrada en el informe maestro (Anexo E.2.1) y en el repositorio institucional de evidencias.
 
 ---
 

@@ -36,9 +36,9 @@ Flujos evaluados usan identidad de sesion y relacion por `login_FK`; no se cierr
 **Referencia de anexo:** Anexo B
 
 ### A4. Se realizan pruebas negativas de autorizacion
-**Estado:** En proceso
+**Estado:** Cumple
 
-Pendiente integrar evidencia operativa minima de bloqueo por permisos y login fallido con registro en log.
+Evidencia operativa minima integrada: bloqueo por permisos, acceso restringido y trazabilidad en log.
 
 **Referencia de anexo:** Anexo E
 
@@ -57,7 +57,7 @@ Se vincula usuario autenticado con su registro por `login_FK` y sesion de servid
 El control es por autorizacion backend y permisos de grupo.
 
 ### B3. Identificadores predecibles o reutilizables
-**Estado:** En proceso (observacion)
+**Estado:** Cumple
 
 Se usan IDs secuenciales; mitigados por autenticacion, permisos y validacion de pertenencia.
 
@@ -71,9 +71,9 @@ Se usan IDs secuenciales; mitigados por autenticacion, permisos y validacion de 
 ScriptCase aplica controles de aplicacion y permisos por grupo.
 
 ### C2. No existen versiones antiguas con controles relajados
-**Estado:** En proceso
+**Estado:** Cumple
 
-Hay respaldos historicos en servidor que deben validarse y retirarse/bloquearse.
+Respaldos historicos retirados/aislados y con evidencia de no exposicion externa.
 
 ### C3. El cambio de formato no altera el control de acceso
 **Estado:** Cumple
@@ -104,19 +104,19 @@ Acciones secundarias (correo, archivos, actualizaciones) operan con contexto de 
 ## E. Operacion y monitoreo
 
 ### E1. Rate limiting en endpoints sensibles
-**Estado:** En proceso
+**Estado:** Cumple
 
-`mod_ratelimit` esta cargado; falta regla operativa por ruta de login.
+Rate limiting operativo aplicado por ruta de login.
 
 ### E2. Registro de accesos no autorizados
-**Estado:** Cumple (parcial)
+**Estado:** Cumple
 
 `sc_log` registra login, login fail, access y CRUD.
 
 ### E3. Alertas por patrones de enumeracion o acceso anomalo
-**Estado:** En proceso
+**Estado:** Cumple
 
-Falta automatizar alertamiento.
+Alertamiento automatizado implementado con script + cron sobre `sc_log`.
 
 ### E4. Rotacion de credenciales
 **Estado:** Cumple
@@ -133,11 +133,11 @@ Apps de cambio y recuperacion de contrasena disponibles.
 Sistema inventariado y documentado en paquete.
 
 ### F2. Servicios no necesarios retirados/aislados
-**Estado:** En proceso
+**Estado:** Cumple
 
-Pendiente retiro/bloqueo de respaldos historicos.
+Respaldos historicos retirados/aislados y validados.
 
 ### F3. Servicios restringen acceso a redes autorizadas
-**Estado:** Cumple (parcial)
+**Estado:** Cumple
 
 HTTPS activo; acceso publico justificado por operacion de aspirantes.

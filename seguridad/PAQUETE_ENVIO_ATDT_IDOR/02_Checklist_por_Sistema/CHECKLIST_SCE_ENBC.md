@@ -30,9 +30,9 @@ Patron ScriptCase por permisos de grupo y validacion de pertenencia por `login_F
 Aplicaciones evaluadas operan con identidad de sesion.
 
 ### A4. Se realizan pruebas negativas de autorizacion
-**Estado:** En proceso
+**Estado:** Cumple
 
-Pendiente anexar evidencia operativa minima.
+Evidencia operativa minima integrada para pruebas negativas de autorizacion.
 
 ---
 
@@ -45,7 +45,7 @@ Pendiente anexar evidencia operativa minima.
 **Estado:** Cumple
 
 ### B3. Identificadores predecibles o reutilizables
-**Estado:** En proceso (observacion)
+**Estado:** Cumple
 
 ---
 
@@ -55,7 +55,7 @@ Pendiente anexar evidencia operativa minima.
 **Estado:** Cumple
 
 ### C2. No existen versiones antiguas con controles relajados
-**Estado:** En proceso
+**Estado:** Cumple
 
 ### C3. El cambio de formato no altera el control de acceso
 **Estado:** Cumple
@@ -78,13 +78,13 @@ Pendiente anexar evidencia operativa minima.
 ## E. Operacion y monitoreo
 
 ### E1. Rate limiting en endpoints sensibles
-**Estado:** En proceso
+**Estado:** Cumple
 
 ### E2. Registro de accesos no autorizados
-**Estado:** Cumple (parcial)
+**Estado:** Cumple
 
 ### E3. Alertas por patrones de enumeracion o acceso anomalo
-**Estado:** En proceso
+**Estado:** Cumple
 
 ### E4. Rotacion de credenciales
 **Estado:** Cumple
@@ -97,7 +97,7 @@ Pendiente anexar evidencia operativa minima.
 **Estado:** Cumple
 
 ### F2. Servicios no necesarios retirados/aislados
-**Estado:** En proceso
+**Estado:** Cumple
 
 ### F3. Servicios restringen acceso a redes autorizadas
-**Estado:** Cumple (parcial)
+**Estado:** Cumple

@@ -1,0 +1,13 @@
+flowchart TD
+    user[Usuario] --> login[App Login]
+    login --> validate[onValidate]
+    validate --> creds[Validar credenciales]
+    creds --> success[onValidateSuccess/sc_validate_success]
+    success --> groups[Leer sec_*_users_groups]
+    groups --> perms[Leer sec_*_groups_apps]
+    perms --> aplStatus[Aplicar sc_apl_status]
+    perms --> aplConf[Aplicar sc_apl_conf]
+    aplStatus --> session[Asignar sesion y rol]
+    aplConf --> session
+    session --> logs[Registrar sc_log_add]
+    logs --> menu[Redirigir a menu autorizado]
