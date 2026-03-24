@@ -608,6 +608,30 @@ Las siguientes evidencias muestran eventos de autenticacion fallida en los tres 
 2. Captura de `httpd-ssl.conf` con `Listen 443`, `SSLCipherSuite` y `SSLSessionCache`.
 3. Captura de navegador mostrando candado TLS en cada sistema (`/sce`, `/sce_asp`, `/sce_enbc`).
 
+#### G.4.1 Evidencia integrada
+
+Las siguientes capturas corresponden al listado G.4. Los extractos de Apache presentan rutas de sistema minimizadas (`/ruta/reservada/...`) de forma coherente con el fragmento de referencia G.2. Las evidencias de navegador combinan barra de direcciones con esquema `https://`, indicador de conexion segura (candado) y carga del contexto publicado en el servidor para cada ruta.
+
+**Evidencia G_C1 — VirtualHost 80 y 443:**
+<img src="04_Anexos/EVIDENCIAS/G_C1_Apache_httpd-vhosts_80_y_443.png" alt="G_C1 httpd-vhosts 80 y 443" width="700" />
+*Pie de evidencia:* se observa redireccion permanente desde el VirtualHost en puerto 80 hacia HTTPS y VirtualHost en 443 con `SSLEngine on` y directivas de certificado (rutas reservadas en imagen).
+
+**Evidencia G_C2 — Parametros globales SSL:**
+<img src="04_Anexos/EVIDENCIAS/G_C2_Apache_httpd-ssl_listen_ciphers_cache.png" alt="G_C2 httpd-ssl Listen ciphers cache" width="700" />
+*Pie de evidencia:* se documentan `Listen 443`, `SSLCipherSuite HIGH:MEDIUM:!aNULL:!MD5` y `SSLSessionCache` con mecanismo `shmcb` (ruta de cache reservada en imagen).
+
+**Evidencia G_C3 — HTTPS /sce:**
+<img src="04_Anexos/EVIDENCIAS/G_C3_TLS_Navegador_SCE.png" alt="G_C3 TLS navegador SCE" width="700" />
+*Pie de evidencia:* URL publicada bajo `https://posgrados.inecol.mx/sce` con indicador de conexion segura y vista cargada del aplicativo en ese contexto.
+
+**Evidencia G_C4 — HTTPS /sce_asp:**
+<img src="04_Anexos/EVIDENCIAS/G_C4_TLS_Navegador_SCE_ASP.png" alt="G_C4 TLS navegador SCE_ASP" width="700" />
+*Pie de evidencia:* URL publicada bajo `https://posgrados.inecol.mx/sce_asp` con indicador de conexion segura y vista cargada del aplicativo en ese contexto.
+
+**Evidencia G_C5 — HTTPS /sce_enbc:**
+<img src="04_Anexos/EVIDENCIAS/G_C5_TLS_Navegador_SCE_ENBC.png" alt="G_C5 TLS navegador SCE_ENBC" width="700" />
+*Pie de evidencia:* URL publicada bajo `https://posgrados.inecol.mx/sce_enbc` con indicador de conexion segura y vista cargada del aplicativo en ese contexto.
+
 ### Anexo H
 #### Plan de cierre y control de seguimiento
 

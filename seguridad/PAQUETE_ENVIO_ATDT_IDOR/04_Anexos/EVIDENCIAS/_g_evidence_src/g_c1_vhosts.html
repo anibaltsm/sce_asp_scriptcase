@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Evidencia G_C1 httpd-vhosts</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; background: #2d2d2d; color: #e0e0e0; }
+  .hdr { background: #1e1e1e; padding: 10px 14px; border-bottom: 1px solid #444; font-size: 13px; color: #9cdcfe; }
+  pre {
+    margin: 0; padding: 16px; font-size: 13px; line-height: 1.45;
+    font-family: Consolas, "DejaVu Sans Mono", monospace; white-space: pre;
+    overflow: auto; background: #1e1e1e; color: #d4d4d4;
+  }
+  .kw { color: #569cd6; }
+</style>
+</head>
+<body>
+<div class="hdr">Evidencia Anexo G — extracto httpd-vhosts.conf (puertos 80 y 443)</div>
+<pre><span class="kw">&lt;VirtualHost *:80&gt;</span>
+    ServerAdmin webmaster@localhost
+    DocumentRoot "/ruta/reservada/htdocs/"
+    ServerName posgrados.inecol.mx
+    Redirect permanent / https://posgrados.inecol.mx/
+<span class="kw">&lt;/VirtualHost&gt;</span>
+
+<span class="kw">&lt;VirtualHost *:443&gt;</span>
+    ServerAdmin webmaster@localhost
+    DocumentRoot "/ruta/reservada/htdocs/"
+    ServerName posgrados.inecol.mx
+
+    SSLEngine on
+    SSLCertificateFile "/ruta/reservada/certificado.crt"
+    SSLCertificateKeyFile "/ruta/reservada/llave.key"
+
+    ErrorLog "/ruta/reservada/ssl-error.log"
+    CustomLog "/ruta/reservada/ssl-access.log" combined
+
+    <span class="kw">&lt;Directory "/ruta/reservada/htdocs/"&gt;</span>
+        AllowOverride All
+        Require all granted
+    <span class="kw">&lt;/Directory&gt;</span>
+<span class="kw">&lt;/VirtualHost&gt;</span></pre>
+</body>
+</html>

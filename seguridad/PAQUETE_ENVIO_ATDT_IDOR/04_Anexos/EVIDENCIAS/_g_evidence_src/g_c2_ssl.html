@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Evidencia G_C2 httpd-ssl</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; background: #2d2d2d; color: #e0e0e0; }
+  .hdr { background: #1e1e1e; padding: 10px 14px; border-bottom: 1px solid #444; font-size: 13px; color: #9cdcfe; }
+  pre {
+    margin: 0; padding: 16px; font-size: 13px; line-height: 1.45;
+    font-family: Consolas, "DejaVu Sans Mono", monospace; white-space: pre;
+    overflow: auto; background: #1e1e1e; color: #d4d4d4;
+  }
+  .cmt { color: #6a9955; }
+  .kw { color: #569cd6; }
+</style>
+</head>
+<body>
+<div class="hdr">Evidencia Anexo G — extracto httpd-ssl.conf (Listen, cifrados, cache de sesion)</div>
+<pre><span class="cmt"># ...</span>
+Listen 443
+
+<span class="cmt">#   SSL Cipher Suite:</span>
+SSLCipherSuite HIGH:MEDIUM:!aNULL:!MD5
+
+<span class="cmt">#   Inter-Process Session Cache:</span>
+SSLSessionCache        "shmcb:/ruta/reservada/ssl_scache(512000)"
+SSLSessionCacheTimeout  300
+<span class="cmt"># ...</span></pre>
+</body>
+</html>

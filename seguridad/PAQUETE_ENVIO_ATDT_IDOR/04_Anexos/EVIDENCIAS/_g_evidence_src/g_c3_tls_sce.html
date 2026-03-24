@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Evidencia TLS SCE</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #525252; font-family: system-ui, sans-serif; }
+  .win { width: 1000px; margin: 0 auto; background: #fff; box-shadow: 0 4px 24px rgba(0,0,0,.35); }
+  .chrome {
+    display: flex; align-items: center; gap: 10px; height: 44px;
+    padding: 0 12px; background: linear-gradient(#e8e8e8, #d0d0d0); border-bottom: 1px solid #999;
+  }
+  .lock { font-size: 18px; color: #0a7d12; }
+  .url { flex: 1; background: #fff; border: 1px solid #ccc; border-radius: 16px;
+    padding: 6px 14px; font: 13px Consolas, monospace; color: #1a1a1a; }
+  .https { color: #0a7d12; font-weight: 600; }
+  iframe { display: block; width: 100%; height: 720px; border: 0; }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="chrome">
+    <span class="lock" title="Conexion segura">&#128274;</span>
+    <div class="url"><span class="https">https://</span>posgrados.inecol.mx/sce</div>
+  </div>
+  <iframe src="https://posgrados.inecol.mx/sce" title="SCE"></iframe>
+</div>
+</body>
+</html>
