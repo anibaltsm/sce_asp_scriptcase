@@ -51,8 +51,9 @@ $mail_tp_copies      = 'CCC';
 $mail_port           = '587';
 $mail_tp_connection  = 'T';
 $mail_cc_admin       = 'anibal.sanchez@inecol.mx;monica.enriquez@inecol.mx';
-$url_login           = 'http://posgrados.inecol.mx/sce_asp/App_login/';
+// URL pública de acceso: en producción la app de login está desplegada como "aspirantes" (no existe carpeta App_login).
 $url_aspirantes      = 'https://posgrados.inecol.mx/sce_asp/aspirantes/';
+$url_login           = $url_aspirantes;
 $url_carta_es        = 'https://posgrado.inecol.mx/images/formatos/convocatorias/DC_MC/Carta_recom_convocatoria_2026.docx';
 $url_carta_en        = 'https://posgrado.inecol.mx/images/formatos/convocatorias/DC_MC/Letter_recom_convocatoria_2026.docx';
 $url_carta_opinion   = 'https://posgrado.inecol.mx/images/formatos/convocatorias/DC_MC/Carta_opinion_DT_2026.docx';

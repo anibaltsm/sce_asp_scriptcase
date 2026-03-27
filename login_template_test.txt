@@ -1,0 +1,66 @@
+sc_reset_apl_status();
+sc_reset_global([usr_login], [usr_email],[generacion], [prog], [entrev]);
+
+// ===== ESTILO PERSONALIZADO LOGIN =====
+sc_include_js("
+<style>
+  /* Fondo general */
+  body, html {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
+    min-height: 100vh;
+  }
+
+  /* Ocultar cabecera y pie de página */
+  #nmTblHead, #nmTblFoot { display: none !important; }
+
+  /* Centrar el bloque del formulario */
+  table.sctable, table[id*='block'] {
+    margin: 0 auto !important;
+  }
+
+  /* Contenedor principal del bloque */
+  #block_Bloco0_app_Login {
+    background: rgba(255,255,255,0.05) !important;
+    backdrop-filter: blur(10px);
+    border-radius: 16px !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    padding: 30px !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4) !important;
+    max-width: 420px;
+    margin: 80px auto !important;
+  }
+
+  /* Labels */
+  .sclabel, label { color: #ccc !important; font-size: 14px !important; }
+
+  /* Inputs */
+  input[type=text], input[type=password] {
+    background: rgba(255,255,255,0.08) !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    border-radius: 8px !important;
+    color: #fff !important;
+    padding: 10px 14px !important;
+    width: 100% !important;
+  }
+
+  input[type=text]:focus, input[type=password]:focus {
+    border-color: #e94560 !important;
+    outline: none !important;
+  }
+
+  /* Botón */
+  input[type=submit], button[type=submit] {
+    background: #e94560 !important;
+    border: none !important;
+    border-radius: 8px !important;
+    color: #fff !important;
+    font-weight: bold !important;
+    padding: 12px 30px !important;
+    cursor: pointer !important;
+    transition: background 0.3s !important;
+    width: 100% !important;
+  }
+
+  input[type=submit]:hover { background: #c73652 !important; }
+</style>
+");

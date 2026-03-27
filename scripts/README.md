@@ -6,7 +6,8 @@ Rutas relativas desde la raíz del repo: `/opt/sce_asp_scriptcase`.
 
 | Script | Descripción |
 |--------|-------------|
-| [`local/levantar_visor_paquete_seguridad.sh`](local/levantar_visor_paquete_seguridad.sh) | HTTP estático en `127.0.0.1` para ver `seguridad/PAQUETE_ENVIO_ATDT_IDOR/viewer.html` (Markdown + Mermaid). |
+| [`local/levantar_visor_paquete_seguridad.sh`](local/levantar_visor_paquete_seguridad.sh) | HTTP estático en `127.0.0.1` para ver `seguridad/PAQUETE_ENVIO_ATDT_IDOR/viewer.html` (Markdown + Mermaid). Puerto por defecto **8765**. |
+| [`local/levantar_visor_documentacion_2026.sh`](local/levantar_visor_documentacion_2026.sh) | Mismo tipo de visor para `CONTRATACION TICS/documentacion_2026/` (borrador + anexos en `md/`). Puerto por defecto **8766**. |
 
 **Uso rápido:**
 
@@ -16,9 +17,16 @@ chmod +x scripts/local/levantar_visor_paquete_seguridad.sh   # una vez
 ./scripts/local/levantar_visor_paquete_seguridad.sh
 ```
 
+```bash
+chmod +x scripts/local/levantar_visor_documentacion_2026.sh   # una vez
+./scripts/local/levantar_visor_documentacion_2026.sh
+```
+
 Puerto ocupado: `PORT=8766 ./scripts/local/levantar_visor_paquete_seguridad.sh`  
 Sin abrir navegador: `NO_BROWSER=1 ./scripts/local/levantar_visor_paquete_seguridad.sh`  
 Liberar puerto (Linux): `LIBERAR_PUERTO=1 ./scripts/local/levantar_visor_paquete_seguridad.sh`
+
+Documentación 2026: otro puerto si hace falta — `PORT=8777 ./scripts/local/levantar_visor_documentacion_2026.sh`
 
 ---
 

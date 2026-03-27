@@ -61,3 +61,7 @@ Se recomienda ejecutar la corrección con privilegios de administrador para comp
 - `sce`: endurecimiento web aplicado.
 - `sce_asp`: endurecimiento web aplicado + respaldos cerrados.
 - `sce_enbc`: endurecimiento web aplicado; pendiente cierre total de permisos inseguros a nivel sistema de archivos.
+
+## Equivalencia en servidor Windows (WAMP) — solo SCE
+
+En Windows: SCE y, con el mismo criterio, los proyectos **convenios**, **cursos**, **diplomados**, **evaluaciones** y **tesis** bajo `C:\wamp64\www\`. Detalle: [HARDENING_WAMP_WINDOWS_SCRIPTCASE.md](HARDENING_WAMP_WINDOWS_SCRIPTCASE.md). Plantilla: [plantillas/htaccess_SCE_WAMP_raiz_apache24.txt](plantillas/htaccess_SCE_WAMP_raiz_apache24.txt). SMB: [deploy_sce_htaccess_wamp_smb.sh](../scripts/seguridad/deploy_sce_htaccess_wamp_smb.sh) (solo SCE) y [deploy_wamp_projects_htaccess_smb.sh](../scripts/seguridad/deploy_wamp_projects_htaccess_smb.sh) (varios).

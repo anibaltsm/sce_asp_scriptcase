@@ -50,7 +50,7 @@ if (isset({rs_dup[0][0]})) {
     sc_exec_sql("DELETE FROM recomendantes WHERE id_recom = " . sc_sql_injection($id_recom_cur));
     sc_commit_trans();
 
-    $url_login = 'http://posgrados.inecol.mx/sce_asp/aspirantes/';
+    $url_login = 'https://posgrados.inecol.mx/sce_asp/aspirantes/';
     $_nom_recom = htmlspecialchars(trim({nombre} . ' ' . {apellido_p} . ' ' . {apellido_m}));
     $msg_notif = '
 <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; font-family: \'Segoe UI\', Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #2c2c2c;">

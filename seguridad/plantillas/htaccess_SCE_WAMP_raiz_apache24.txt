@@ -1,0 +1,15 @@
+# Copiar como .htaccess en la raíz de SCE: C:\wamp64\www\SCE\.htaccess
+# Requiere Apache 2.4+, mod_rewrite, AllowOverride All
+
+Options -Indexes
+
+<FilesMatch "(?i)\.(sql|zip|tar|gz|tgz|bak|old|log)$">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^backups([_/].*)?$ - [F,L,NC]
+  RewriteRule ^_lib/?$ - [F,L,NC]
+  RewriteRule ^_lib/prod/?$ - [F,L,NC]
+</IfModule>

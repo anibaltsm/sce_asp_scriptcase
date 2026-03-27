@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Visor local - documentacion_2026</title>
+  <style>
+    :root {
+      --bg: #12100f;
+      --panel: #1c1917;
+      --panel-soft: #292524;
+      --text: #f5f5f4;
+      --muted: #a8a29e;
+      --accent: #f59e0b;
+      --border: #44403c;
+      --ok: #34d399;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(1000px 600px at 10% -10%, #422006 0%, var(--bg) 55%);
+      height: 100vh;
+      overflow: hidden;
+    }
+    .app {
+      display: grid;
+      grid-template-columns: 330px 1fr;
+      height: 100vh;
+    }
+    .sidebar {
+      border-right: 1px solid var(--border);
+      background: linear-gradient(180deg, var(--panel) 0%, #0c0a09 100%);
+      padding: 16px;
+      overflow: auto;
+    }
+    .title {
+      margin: 0 0 6px;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .subtitle {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .search {
+      width: 100%;
+      background: var(--panel-soft);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      outline: none;
+    }
+    .search:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+    }
+    .list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .item button {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--border);
+      background: #1c1917;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+    .item button:hover { border-color: var(--accent); }
+    .item button.active {
+      border-color: var(--accent);
+      background: rgba(245, 158, 11, 0.12);
+    }
+    .path {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 3px;
+    }
+    .content {
+      overflow: auto;
+      padding: 24px 28px 40px;
+    }
+    .topbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      background: rgba(52, 211, 153, 0.12);
+      border: 1px solid rgba(52, 211, 153, 0.45);
+      color: var(--ok);
+      font-size: 12px;
+      border-radius: 999px;
+      padding: 4px 10px;
+    }
+    .file-name {
+      font-size: 13px;
+      color: var(--muted);
+      padding: 6px 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .markdown {
+      max-width: 980px;
+      line-height: 1.6;
+      background: rgba(28, 25, 23, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .markdown h1, .markdown h2, .markdown h3, .markdown h4 {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 4px;
+      margin-top: 1.2em;
+    }
+    .markdown a { color: #fcd34d; }
+    .markdown code {
+      background: rgba(255, 255, 255, 0.09);
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 0.92em;
+    }
+    .markdown pre {
+      background: #0c0a09;
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: 10px;
+      overflow-x: auto;
+    }
+    .markdown img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .markdown blockquote {
+      margin-left: 0;
+      border-left: 4px solid var(--accent);
+      padding-left: 12px;
+      color: #d6d3d1;
+    }
+    .empty {
+      color: var(--muted);
+      padding: 20px;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { max-height: 42vh; border-right: 0; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <h1 class="title">documentacion_2026</h1>
+      <p class="subtitle">Contratación TICS · borrador + anexos Markdown</p>
+      <input id="search" class="search" type="search" placeholder="Filtrar archivos...">
+      <ul id="list" class="list"></ul>
+    </aside>
+    <main class="content">
+      <div class="topbar">
+        <span class="badge">Servidor local</span>
+        <span id="currentFile" class="file-name">Selecciona un documento</span>
+      </div>
+      <article id="preview" class="markdown">
+        <div class="empty">Selecciona un archivo del panel izquierdo para renderizarlo.</div>
+      </article>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+    let files = [];
+
+    const list = document.getElementById("list");
+    const search = document.getElementById("search");
+    const preview = document.getElementById("preview");
+    const currentFile = document.getElementById("currentFile");
+    let mermaidCounter = 0;
+
+    marked.setOptions({ breaks: true, gfm: true });
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "dark",
+      securityLevel: "loose"
+    });
+
+    function escapeHtml(text) {
+      return text
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function transformMermaidFences(markdownText) {
+      const re = /```mermaid\s*\n([\s\S]*?)```/gi;
+      return markdownText.replace(re, (_, code) => {
+        const id = "mmd-" + (++mermaidCounter);
+        return '<div class="mermaid-host" data-mermaid-id="' + id + '">' +
+          '<pre class="mermaid-source" style="display:none;">' + escapeHtml(code.trim()) + '</pre>' +
+          '<div class="mermaid-diagram" id="' + id + '"></div>' +
+        '</div>';
+      });
+    }
+
+    async function renderMermaidBlocks() {
+      const blocks = Array.from(preview.querySelectorAll(".mermaid-host"));
+      for (const block of blocks) {
+        const id = block.getAttribute("data-mermaid-id");
+        const sourceEl = block.querySelector(".mermaid-source");
+        const targetEl = block.querySelector(".mermaid-diagram");
+        if (!id || !sourceEl || !targetEl) continue;
+
+        const definition = sourceEl.textContent || "";
+        try {
+          const { svg } = await mermaid.render(id + "-svg", definition);
+          targetEl.innerHTML = svg;
+        } catch (e) {
+          targetEl.innerHTML = '<div class="empty">Error renderizando Mermaid:<br><code>' +
+            escapeHtml(String(e && e.message ? e.message : e)) + "</code></div>";
+        }
+      }
+    }
+
+    function labelFromPath(path) {
+      const parts = path.split("/");
+      return parts[parts.length - 1];
+    }
+
+    function normalizePath(path) {
+      return path.replace(/^\.\//, "").replace(/\/{2,}/g, "/");
+    }
+
+    function joinPath(base, href) {
+      return normalizePath(base + href);
+    }
+
+    async function discoverMarkdownFiles(root = "./") {
+      const visitedDirs = new Set();
+      const found = [];
+
+      async function crawl(dir) {
+        const normalizedDir = normalizePath(dir);
+        if (visitedDirs.has(normalizedDir)) return;
+        visitedDirs.add(normalizedDir);
+
+        const res = await fetch(dir, { cache: "no-store" });
+        if (!res.ok) return;
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const links = Array.from(doc.querySelectorAll("a"));
+
+        for (const a of links) {
+          const href = a.getAttribute("href");
+          if (!href || href === "../" || href.startsWith("?") || href.startsWith("#")) {
+            continue;
+          }
+
+          const decoded = decodeURIComponent(href);
+          const relPath = joinPath(dir, decoded);
+
+          if (decoded.endsWith("/")) {
+            await crawl(relPath);
+            continue;
+          }
+
+          if (/\.md$/i.test(decoded)) {
+            found.push(relPath);
+          }
+        }
+      }
+
+      await crawl(root);
+      return found.sort((a, b) => a.localeCompare(b, "es"));
+    }
+
+    async function loadFile(path) {
+      try {
+        const res = await fetch(path, { cache: "no-store" });
+        if (!res.ok) throw new Error("No se pudo cargar el archivo.");
+        const text = await res.text();
+        const withMermaidPlaceholders = transformMermaidFences(text);
+        preview.innerHTML = marked.parse(withMermaidPlaceholders);
+        await renderMermaidBlocks();
+        currentFile.textContent = path;
+        history.replaceState(null, "", "#"+encodeURIComponent(path));
+        setActive(path);
+      } catch (err) {
+        preview.innerHTML = '<div class="empty">Error cargando <code>' + path + '</code>: ' + err.message + "</div>";
+      }
+    }
+
+    function setActive(path) {
+      document.querySelectorAll(".item button").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.path === path);
+      });
+    }
+
+    function renderList(filter = "") {
+      const norm = filter.trim().toLowerCase();
+      list.innerHTML = "";
+      const filtered = files.filter(p => p.toLowerCase().includes(norm));
+      for (const path of filtered) {
+        const li = document.createElement("li");
+        li.className = "item";
+        const btn = document.createElement("button");
+        btn.dataset.path = path;
+        btn.innerHTML = labelFromPath(path) + '<span class="path">' + path + "</span>";
+        btn.addEventListener("click", () => loadFile(path));
+        li.appendChild(btn);
+        list.appendChild(li);
+      }
+      if (!filtered.length) {
+        const li = document.createElement("li");
+        li.innerHTML = '<div class="empty">Sin coincidencias para ese filtro.</div>';
+        list.appendChild(li);
+      }
+    }
+
+    search.addEventListener("input", () => renderList(search.value));
+
+    async function init() {
+      currentFile.textContent = "Escaneando documentos...";
+      preview.innerHTML = '<div class="empty">Buscando archivos Markdown en la estructura actual...</div>';
+
+      files = await discoverMarkdownFiles("./");
+      renderList();
+
+      if (!files.length) {
+        currentFile.textContent = "Sin archivos .md";
+        preview.innerHTML = '<div class="empty">No se encontraron archivos Markdown en esta carpeta.</div>';
+        return;
+      }
+
+      const hashPath = decodeURIComponent((location.hash || "").replace(/^#/, ""));
+      if (hashPath && files.includes(hashPath)) {
+        loadFile(hashPath);
+        return;
+      }
+
+      const defaultFile =
+        files.find(p => /BORRADOR_TODO_2026\.md$/i.test(p)) || files[0];
+      loadFile(defaultFile);
+    }
+
+    init();
+  </script>
+</body>
+</html>
