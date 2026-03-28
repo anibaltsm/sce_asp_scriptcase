@@ -198,7 +198,8 @@ if ({rs} !== false) {
                              ", redirigiendo a reactivación");
                     
                     // Redirigir a formulario de reactivación
-                    $menu = 'form_reactivar_registro';
+					// *lo comente para que no puedan acceder los que vienen de otra generacion
+                   // $menu = 'form_reactivar_registro';
                 }
                 // Si no tiene ningún registro (caso anómalo)
                 else {
@@ -296,6 +297,14 @@ if ({rs} !== false) {
             [prog] = {rs1[0][1]};
             
             $menu = 'menu_sp';
+            break;
+    
+	        // ====================================================================
+        // CASE 7: RECOMENDANTE
+        // ====================================================================
+        case 7:
+
+            $menu = 'Menu_Recomendantes';
             break;
     }
     
