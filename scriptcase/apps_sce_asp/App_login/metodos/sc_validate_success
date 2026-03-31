@@ -133,10 +133,17 @@ if ({rs} !== false) {
     // ========================================================================
     // PASO 7: DETERMINAR TIPO DE USUARIO Y REDIRIGIR AL MENÚ CORRESPONDIENTE
     // ========================================================================
-    // Obtener el group_id del usuario (define su tipo/rol)
+    // Obtener el group_id del usuario con prioridad explícita de roles.
+    // Un usuario puede tener varios grupos (ej. Evaluador + Recomendante).
+    // FIELD() define el orden: 7 (Recomendante) al frente para que,
+    // si la persona tiene ese rol asignado, se dirija siempre a su menú
+    // de recomendante y no a otro rol anterior que pudiera tener.
+    // El resto de roles mantiene su orden natural (1,2,3,4,5,6).
     $sql_command = "SELECT group_id
                     FROM sec_asp_users_groups
-                    WHERE login='".[usr_login]."'";
+                    WHERE login='".[usr_login]."'
+                    ORDER BY FIELD(group_id,7,1,2,3,4,5,6)
+                    LIMIT 1";
     sc_lookup(ds, $sql_command);
     $tipousu = {ds[0][0]};
     sc_set_global($tipousu);
