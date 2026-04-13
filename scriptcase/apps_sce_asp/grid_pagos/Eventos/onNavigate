@@ -1,0 +1,38 @@
+// Verificar que tenemos el id_asp
+if (!isset([id_asp]) || empty([id_asp])) {
+    sc_error_message("Error: No se encontró el ID del aspirante.");
+    return;
+}
+
+$id_asp = [id_asp];
+
+$dato = strlen($id_asp);
+if ($dato <= 3) {
+    if ($dato == 1) {
+        $ceros = '000';
+    }
+    if ($dato == 2) {
+        $ceros = '00';
+    }
+    if ($dato == 3) {
+        $ceros = '0';
+    }
+    $referencia = "INECOLPA0002" . $ceros . $id_asp . "00";
+} else {
+    $referencia = "INECOLPA0002" . $id_asp . "00";
+}
+
+$nom_asp = 'SELECT nombres, ap_pat, ap_mat, completo_apnom, completo_nomap FROM sce_asp.aspirantes WHERE id_asp=' . $id_asp;
+sc_lookup(rs0, $nom_asp);
+
+if (isset($rs0[0])) {
+    $nombres = $rs0[0][0];
+    $apat = $rs0[0][1];
+    $amat = $rs0[0][2];
+    
+    $update_datos = "UPDATE sce.pagos SET nombre_interesado='" . $nombres . " " . $apat . " " . $amat .
+                   "', concepto='Derecho al proceso de selección " . [generacion] . "', monto='600', referencia='" . $referencia . "' WHERE id_asp_FK='" . $id_asp . "'";
+    sc_exec_sql($update_datos);
+} else {
+    sc_error_message("No se encontraron datos del aspirante con ID: " . $id_asp);
+}

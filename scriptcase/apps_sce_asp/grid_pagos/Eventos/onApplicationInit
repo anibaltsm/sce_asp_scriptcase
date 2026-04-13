@@ -60,7 +60,7 @@ if (isset($_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_orig'])) 
 }
 
 // Mensaje con instrucciones y enlace a la guía de pago
-$url_guia_pago = "#"; // Reemplazar por la URL real del PDF o página de la guía (ej: /docs/guia_pago_posgrado.pdf)
+$url_guia_pago = "https://posgrado.inecol.mx/images/formatos/convocatorias/DC_MC/Guia_pago_aspirantes_2026.pdf"; // Reemplazar por la URL real del PDF o página de la guía (ej: /docs/guia_pago_posgrado.pdf)
 ?>
 <div class="sc-leyenda-pagos" style="background:#e8f4fc;border:1px solid #0d6efd;color:#084298;padding:14px 16px;margin:0 0 12px 0;border-radius:4px;font-size:13px;line-height:1.5;">
 <p style="margin:0 0 10px 0;font-size:14px;font-weight:700;">Instrucciones para realizar tus pagos</p>

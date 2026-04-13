@@ -1,0 +1,184 @@
+// CRÍTICO: Limpiar id_asp ANTES de que se construya el WHERE
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Si existe id_asp en sesión, limpiarlo inmediatamente
+if (isset($_SESSION['id_asp']) && !empty($_SESSION['id_asp'])) {
+    // Quitar ceros del inicio
+    $id_asp_limpio = ltrim($_SESSION['id_asp'], "0");
+    if (empty($id_asp_limpio)) {
+        $id_asp_limpio = "0";
+    }
+    
+    // Actualizar sesión con valor limpio
+    $_SESSION['id_asp'] = $id_asp_limpio;
+    $this->id_asp = $id_asp_limpio;
+    
+    error_log("GRID_PAGOS onScriptInit: id_asp limpiado = " . $id_asp_limpio);
+}
+
+// Si viene por GET, también limpiarlo
+if (isset($_GET['id_asp']) && !empty($_GET['id_asp'])) {
+    $id_asp_limpio = ltrim($_GET['id_asp'], "0");
+    if (empty($id_asp_limpio)) {
+        $id_asp_limpio = "0";
+    }
+    
+    $_SESSION['id_asp'] = $id_asp_limpio;
+    $this->id_asp = $id_asp_limpio;
+    
+    error_log("GRID_PAGOS onScriptInit: id_asp desde GET limpiado = " . $id_asp_limpio);
+}
+
+// ✅ CORREGIR EL WHERE SI YA FUE CONSTRUIDO (después de init())
+// Esto se ejecutará DESPUÉS de que grid_pagos_grid.class.php construya el WHERE en línea 719
+if (isset($_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_orig'])) {
+    $where_actual = $_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_orig'];
+    
+    // Si el WHERE tiene valores con ceros (como 00000001258), limpiarlos
+    if (preg_match('/where\s*\(Id\s*=\s*(\d+)\)/i', $where_actual, $matches)) {
+        $id_con_ceros = $matches[1];
+        $id_limpio = ltrim($id_con_ceros, "0");
+        if (empty($id_limpio)) {
+            $id_limpio = "0";
+        }
+        
+        // Si el ID tiene ceros, reconstruir el WHERE
+        if ($id_con_ceros != $id_limpio) {
+            $_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_orig'] = " where (id_asp_FK=" . $id_limpio . ")";
+            $_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_pesq'] = $_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_orig'];
+            $_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_pesq_ant'] = $_SESSION['sc_session'][$this->sc_page]['grid_pagos']['where_orig'];
+            
+            error_log("GRID_PAGOS onScriptInit: WHERE corregido de id_asp_FK=" . $id_con_ceros . " a id_asp_FK=" . $id_limpio);
+        }
+    }
+}
+
+// 🔍 DEBUG: Verificar qué base de datos está usando la conexión
+if (isset($this->Db) && is_object($this->Db)) {
+    $db_name = isset($this->Db->database) ? $this->Db->database : 'NO SET';
+    error_log("🔍 GRID_PAGOS DEBUG: Base de datos de conexión = " . $db_name);
+    
+    // Intentar consulta directa para verificar
+    try {
+        $test_query = "SELECT DATABASE() as db_name";
+        $result = $this->Db->Execute($test_query);
+        if ($result && !$result->EOF) {
+            error_log("🔍 GRID_PAGOS DEBUG: DATABASE() = " . $result->fields[0]);
+        }
+    } catch (Exception $e) {
+        error_log("🔍 GRID_PAGOS DEBUG ERROR: " . $e->getMessage());
+    }
+    
+    // Verificar si puede acceder a sce.pagos
+    try {
+        $test_query = "SELECT COUNT(*) FROM sce.pagos LIMIT 1";
+        $result = $this->Db->Execute($test_query);
+        if ($result) {
+            error_log("🔍 GRID_PAGOS DEBUG: Acceso a sce.pagos = OK");
+        }
+    } catch (Exception $e) {
+        error_log("🔍 GRID_PAGOS DEBUG: Error al acceder a sce.pagos: " . $e->getMessage());
+    }
+    
+    // 🔍 DEBUG: Verificar estructura de la tabla usando INFORMATION_SCHEMA
+    try {
+        // Verificar directamente sin usar LIKE
+        $test_query = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='sce' AND TABLE_NAME='pagos' AND COLUMN_NAME='Id'";
+        $result = $this->Db->Execute($test_query);
+        if ($result && !$result->EOF) {
+            error_log("🔍 GRID_PAGOS DEBUG: Columna 'Id' encontrada en sce.pagos usando INFORMATION_SCHEMA");
+        } else {
+            error_log("🔍 GRID_PAGOS DEBUG: Columna 'Id' NO encontrada usando INFORMATION_SCHEMA");
+        }
+        
+        // Verificar todas las columnas
+        $test_query2 = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='sce' AND TABLE_NAME='pagos' ORDER BY ORDINAL_POSITION";
+        $result2 = $this->Db->Execute($test_query2);
+        if ($result2) {
+            $columnas = array();
+            while (!$result2->EOF) {
+                $columnas[] = $result2->fields[0];
+                $result2->MoveNext();
+            }
+            error_log("🔍 GRID_PAGOS DEBUG: Columnas en sce.pagos: " . implode(", ", $columnas));
+        }
+        
+        // Intentar consulta directa con Id
+        $test_query3 = "SELECT COUNT(*) FROM sce.pagos WHERE Id IS NOT NULL LIMIT 1";
+        $result3 = $this->Db->Execute($test_query3);
+        if ($result3) {
+            error_log("🔍 GRID_PAGOS DEBUG: Consulta directa con Id = OK");
+        } else {
+            $error_msg = $this->Db->ErrorMsg();
+            error_log("🔍 GRID_PAGOS DEBUG: Error en consulta con Id: " . $error_msg);
+        }
+        
+    } catch (Exception $e) {
+        error_log("🔍 GRID_PAGOS DEBUG: Error al verificar columna Id: " . $e->getMessage());
+    }
+    
+    // 🔍 DEBUG: Verificar usuario y permisos de la conexión
+    try {
+        $test_user = "SELECT USER(), CURRENT_USER(), DATABASE()";
+        $result_user = $this->Db->Execute($test_user);
+        if ($result_user && !$result_user->EOF) {
+            error_log("🔍 GRID_PAGOS DEBUG: USER() = " . $result_user->fields[0]);
+            error_log("🔍 GRID_PAGOS DEBUG: CURRENT_USER() = " . $result_user->fields[1]);
+            error_log("🔍 GRID_PAGOS DEBUG: DATABASE() = " . $result_user->fields[2]);
+        }
+        
+        // Intentar consulta directa sin usar INFORMATION_SCHEMA
+        $test_direct = "SELECT COUNT(*) FROM sce.pagos WHERE id_pago=1 LIMIT 1";
+        $result_direct = $this->Db->Execute($test_direct);
+        if ($result_direct) {
+            error_log("🔍 GRID_PAGOS DEBUG: Consulta directa con id_pago = OK");
+        } else {
+            error_log("🔍 GRID_PAGOS DEBUG: Error en consulta directa: " . $this->Db->ErrorMsg());
+        }
+        
+        // Verificar si puede ver la columna Id directamente
+        $test_id = "SELECT Id FROM sce.pagos LIMIT 1";
+        $result_id = $this->Db->Execute($test_id);
+        if ($result_id) {
+            error_log("🔍 GRID_PAGOS DEBUG: Puede acceder a columna Id directamente = OK");
+        } else {
+            error_log("🔍 GRID_PAGOS DEBUG: NO puede acceder a columna Id: " . $this->Db->ErrorMsg());
+        }
+        
+    } catch (Exception $e) {
+        error_log("🔍 GRID_PAGOS DEBUG: Error al verificar usuario: " . $e->getMessage());
+    }
+    
+    // 🔍 DEBUG: Verificar si está consultando una vista o tabla
+    try {
+        $test_view = "SELECT TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='sce' AND TABLE_NAME='pagos'";
+        $result_view = $this->Db->Execute($test_view);
+        if ($result_view && !$result_view->EOF) {
+            error_log("🔍 GRID_PAGOS DEBUG: Tipo de objeto 'pagos' en sce: " . $result_view->fields[0]);
+        }
+        
+        // Verificar si puede ver ambas (tabla en sce y vista en sce_asp)
+        $test_both = "SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE (TABLE_SCHEMA='sce' OR TABLE_SCHEMA='sce_asp') AND TABLE_NAME='pagos'";
+        $result_both = $this->Db->Execute($test_both);
+        if ($result_both) {
+            while (!$result_both->EOF) {
+                error_log("🔍 GRID_PAGOS DEBUG: Encontrado - Schema: " . $result_both->fields[0] . ", Name: " . $result_both->fields[1] . ", Type: " . $result_both->fields[2]);
+                $result_both->MoveNext();
+            }
+        }
+    } catch (Exception $e) {
+        error_log("🔍 GRID_PAGOS DEBUG: Error al verificar vistas: " . $e->getMessage());
+    }
+}
+
+// 🔍 DEBUG: Verificar configuración de la tabla
+if (isset($this->nm_tabela)) {
+    error_log("🔍 GRID_PAGOS DEBUG: nm_tabela = " . $this->nm_tabela);
+}
+
+// 🔍 DEBUG: Verificar perfil de conexión
+if (isset($_SESSION['scriptcase']['grid_pagos']['glo_nm_perfil'])) {
+    error_log("🔍 GRID_PAGOS DEBUG: Perfil de conexión = " . $_SESSION['scriptcase']['grid_pagos']['glo_nm_perfil']);
+}
