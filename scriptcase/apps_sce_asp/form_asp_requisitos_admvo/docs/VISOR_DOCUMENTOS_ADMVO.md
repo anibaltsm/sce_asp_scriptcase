@@ -71,8 +71,40 @@ Ver fragmentos listos para copiar en:
 | Tipo de app | Evento sugerido |
 |-------------|-----------------|
 | **Grid** de requisitos | **`onRecord`**: añadir botón/enlace por fila usando `{id_asp_FK}` (o el campo que corresponda al aspirante). |
-| **Form** (un aspirante / un requisito) | **Botón** en barra → `onExecute` o JavaScript `window.open(...)` con URL generada en PHP. |
-| Alternativa | **`onApplicationInit`**: calcular URL una vez si `id_asp_FK` está disponible globalmente. |
+| **Form** (requisitos por registro) | **`onLoad`**: generar el token y emitir JavaScript que inserte el enlace (implementado en [`../Eventos/onLoad`](../Eventos/onLoad)). **No** pongas el HTML dentro de `id_asp_FK`: en Scriptcase ese campo es **numérico** y el valor se escapa; el `<a>` no se renderiza. |
+| **Form** | **Botón** de barra → `onExecute` con `window.open` / `sc_redir` si no quieres JS inyectado. |
+| **`onApplicationInit`** | No sustituye a `onLoad` para esta URL: corre al iniciar la app; al cambiar de registro el `id_asp` cambia y el enlace debe recalcularse al cargar cada registro (véase manual v9: eventos de formulario, `onLoad` / `onLoadRecord`). |
+
+### Publicación desde Scriptcase (obligatorio)
+
+Los archivos bajo [`../Eventos/`](../Eventos/) en Git **no** sustituyen al código que ejecuta el servidor. Scriptcase inyecta el evento en el PHP generado (`*_apl.php`, `*_js0.php`, etc.) solo cuando en el IDE se pega el código, se **genera código fuente** y se **publica** al entorno (`sce_asp_test`, `sce_asp`, etc.).
+
+Pasos recomendados:
+
+1. Abrir la aplicación `form_asp_requisitos_admvo` en Scriptcase y confirmar que el evento **onLoad** contiene el mismo contenido que [`../Eventos/onLoad`](../Eventos/onLoad) (o equivalente).
+2. **Generar código fuente** y **publicar** hacia la carpeta del entorno de pruebas o producción.
+
+### Verificación en el PHP generado (servidor)
+
+Tras publicar, en el host donde quedó la app debe aparecer texto reconocible del visor. Ejemplo para pruebas bajo `sce_asp_test`:
+
+```bash
+grep -R "adm-visor-req" /opt/lampp/htdocs/sce_asp_test/form_asp_requisitos_admvo/
+```
+
+Si **no** hay coincidencias, el botón no puede mostrarse: el fallo es de **publicación o sincronización del evento**, no de la lógica del visor en sí. Compruebe también en el navegador (F12) el elemento `#sc_btn_visor_expediente_admvo` o el texto “Abrir expediente”.
+
+### Formulario multipágina y detalle en iframe
+
+Este formulario puede usarse como **multiregistro / paginación parcial** y embebido con `script_case_detail=Y` (iframe). En ese contexto:
+
+- La barra `.scFormToolbar` puede **no existir**; el evento inserta el enlace con **`position: fixed`** (esquina superior derecha) cuando no hay toolbar reconocible.
+- En **onLoad** global, la macro `{id_asp_FK}` a veces viene **vacía**; el código intenta entonces resolver `id_asp` vía **`{id_asp_req}`** y `sc_lookup` a `asp_requisitos.id_asp_FK`. El token HMAC se genera **solo en PHP**; no basta leer `id_asp` en el DOM sin un endpoint adicional firmado en servidor.
+
+Rutas del visor en disco que prueba el evento (la primera que exista con `lib/token.php`):
+
+- `/opt/lampp/htdocs/visor-requisitos-admvo`
+- `/opt/sce_asp_scriptcase/visor-requisitos-admvo`
 
 Requisitos en el servidor PHP de Scriptcase:
 

@@ -1,0 +1,13 @@
+//Consulta la generacion para utilizarla en el apartado de archivo y para el renombre de los archivos
+$gen='SELECT generacion 
+                   FROM sce.convocatorias_posg 
+                   WHERE cc_activa=1 
+                   AND (id_prog_FK<>9 OR ISNULL(id_prog_FK))
+                   LIMIT 1';
+sc_lookup(rs0,$gen);
+$generacion = {rs0[0][0]};	
+sc_set_global($generacion);
+
+$cont_file={archivo};
+sc_set_global($cont_file);
+

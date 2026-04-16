@@ -3,8 +3,9 @@ declare(strict_types=1);
 
 /*
  * ================================================================================
- * PLANTILLA — copiar al evento onRecord del grid form_asp_requisitos_admvo
- * (o a onExecute / código de botón). Ver ../docs/VISOR_DOCUMENTOS_ADMVO.md
+ * PLANTILLA — para GRID: copiar a onRecord. Para FORMULARIO: no asignes HTML a id_asp_FK
+ * (campo numérico); usa el evento onLoad con JS como en ../Eventos/onLoad.
+ * Ver ../docs/VISOR_DOCUMENTOS_ADMVO.md
  *
  * {id_asp_FK} es sintaxis Scriptcase: debe coincidir con un campo del SQL del grid.
  * ================================================================================

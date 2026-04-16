@@ -1,0 +1,90 @@
+// ------------------------------------------------------------------
+// Botón "Abrir expediente" → visor (token HMAC, type=adm-visor-req).
+// Formulario multipágina / detalle en iframe: inserta el enlace en el
+// toolbar superior (lado derecho), sin fallback fuera del toolbar.
+//
+// id_asp_FK es numérico: no sirve inyectar HTML en el campo.
+// En onLoad global {id_asp_FK} a veces viene vacío: se intenta id_asp_req.
+//
+// IMPORTANTE: este archivo debe GENERARSE/PUBLICARSE desde Scriptcase al
+// servidor (sce_asp_test / producción); no basta con tenerlo solo en Git.
+// Ver docs/VISOR_DOCUMENTOS_ADMVO.md (verificación con grep).
+// ------------------------------------------------------------------
+
+$visor_path = '/opt/lampp/htdocs/visor-requisitos-admvo';
+if (!is_dir($visor_path) || !is_file($visor_path . '/lib/token.php') || !is_file($visor_path . '/config.php')) {
+    error_log('form_asp_requisitos_admvo onLoad visor: ruta inválida ' . $visor_path);
+    return;
+}
+
+$id_asp = intval({id_asp_FK});
+
+// Respaldo: macro del primer requisito visible (form multipágina)
+if ($id_asp <= 0) {
+    $id_req = intval({id_asp_req});
+    if ($id_req > 0) {
+        sc_lookup(rs_vis_idasp, 'SELECT id_asp_FK FROM asp_requisitos WHERE id_asp_req = ' . $id_req . ' LIMIT 1');
+        if (isset({rs_vis_idasp[0][0]})) {
+            $id_asp = intval({rs_vis_idasp[0][0]});
+        }
+    }
+}
+
+if ($id_asp <= 0) {
+    return;
+}
+
+require_once $visor_path . '/config.php';
+require_once $visor_path . '/lib/token.php';
+
+try {
+    $token = generateDownloadToken($id_asp, 'adm-visor-req');
+} catch (Throwable $e) {
+    error_log('form_asp_requisitos_admvo onLoad visor: ' . $e->getMessage());
+    return;
+}
+
+$base = defined('VISOR_PUBLIC_BASE_URL')
+    ? trim((string) VISOR_PUBLIC_BASE_URL)
+    : 'https://posgrados.inecol.mx/visor-requisitos-admvo/';
+$base = preg_replace('#/(index|viewer|serve)\.php.*$#i', '', $base);
+$base = rtrim($base, '/');
+$visor_url = $base . '/index.php?type=adm-visor-req&id=' . $id_asp . '&token=' . rawurlencode($token);
+
+$url_json = json_encode($visor_url, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+?>
+<script type="text/javascript">
+(function () {
+    var url = <?php echo $url_json; ?>;
+    if (!url) { return; }
+    function insertBtn() {
+        if (document.getElementById('sc_btn_visor_expediente_admvo')) { return; }
+        var a = document.createElement('a');
+        a.id = 'sc_btn_visor_expediente_admvo';
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.setAttribute('title', 'Abrir expediente administrativo (visor documentos)');
+        a.appendChild(document.createTextNode('Abrir expediente'));
+        var rightPad = document.querySelector('.sc-toolbar-top td.scFormToolbarPadding[align="left"]')
+            || document.querySelector('.sc-toolbar-top td.scFormToolbarPadding:last-child');
+        var tb = document.querySelector('.scFormToolbar.sc-toolbar-top')
+            || document.querySelector('.scFormToolbar')
+            || document.querySelector('[id*="toolbar"]')
+            || document.querySelector('.sc-ui-toolbar');
+        if (!rightPad && tb) {
+            rightPad = tb.querySelector('td.scFormToolbarPadding[align="left"]')
+                || tb.querySelector('td.scFormToolbarPadding:last-child');
+        }
+        if (!rightPad) { return; }
+        a.style.cssText = 'display:inline-block;margin:6px 8px 6px 0;padding:6px 12px;background:#0066cc;color:#fff !important;text-decoration:none;border-radius:4px;font-size:12px;font-weight:600;vertical-align:middle;';
+        rightPad.insertBefore(a, rightPad.firstChild);
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', insertBtn);
+    } else {
+        insertBtn();
+    }
+})();
+</script>
+<?php
