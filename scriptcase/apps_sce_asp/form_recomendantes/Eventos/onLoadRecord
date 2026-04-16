@@ -17,4 +17,52 @@ if ($cc_edit_val == 0 || $cc_edit_val === '0') {
     sc_field_disabled_record("nombre_=true;apellido_p_=true;apellido_m_=true;correo_=true");
 }
 
-// JavaScript para ocultar botones borrar: movido a onApplicationInit (una sola vez)
+// Inyectar JavaScript adicional para ocultar botones de borrar
+?>
+<script>
+(function() {
+    // Esperar a que cargue el DOM
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', ocultarBotonesDelete);
+    } else {
+        ocultarBotonesDelete();
+    }
+    
+    function ocultarBotonesDelete() {
+        // Buscar y ocultar TODOS los botones/iconos de delete
+        const selectores = [
+            'img[src*="delete"]',
+            'img[src*="btdel"]',
+            'img[src*="ico_delete"]',
+            'img[title="Delete"]',
+            'img[title="Borrar"]',
+            'img[alt="Delete"]',
+            'img[alt="Borrar"]',
+            'a[onclick*="excluir"]',
+            'button[name*="delete"]',
+            '.scButton_delete'
+        ];
+        
+        selectores.forEach(function(selector) {
+            try {
+                const elementos = document.querySelectorAll(selector);
+                elementos.forEach(function(el) {
+                    el.style.display = 'none';
+                    el.style.visibility = 'hidden';
+                    el.style.opacity = '0';
+                    /* NO ocultar parentElement: el botón Guardar puede estar en la misma celda */
+                });
+            } catch(e) {
+                console.warn('Error ocultando selector:', selector, e);
+            }
+        });
+        
+        console.log('🗑️ Botones de borrar ocultados via JavaScript');
+    }
+    
+    // Ejecutar también tras un pequeño delay por si el DOM cambia
+    setTimeout(ocultarBotonesDelete, 500);
+    setTimeout(ocultarBotonesDelete, 1000);
+})();
+</script>
+<?php

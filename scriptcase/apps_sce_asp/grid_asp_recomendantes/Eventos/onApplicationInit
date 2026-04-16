@@ -1,0 +1,9 @@
+// Buscar el id_recom según el login
+$sql = "SELECT id_recom 
+        FROM sce_asp.recomendantes 
+        WHERE login_FK = '" . [usr_login] . "'";
+sc_lookup(ds, $sql);
+
+if (isset({ds[0][0]})) {
+    [id_recom] = {ds[0][0]}; // Guardar en variable global
+}
