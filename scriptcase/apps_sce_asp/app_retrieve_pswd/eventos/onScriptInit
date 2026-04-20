@@ -1,0 +1,70 @@
+/*// Comentado por Monica el 4 de enero de 2020 para modificar código
+// En caso de que no sea necesario, será eliminado.
+
+if(isset($_GET['act_code']) && !empty($_GET['act_code']))
+{
+	$act_code = trim($_GET['act_code']);
+	$sql = 	"SELECT 
+			login 
+		FROM 
+			sec_asp_users 
+		WHERE 
+			activation_code = ". sc_sql_injection($act_code);
+	sc_lookup(rs, $sql);
+
+	if({rs} !== FALSE && isset({rs}[0][0]))
+	{
+        $usr_login = {rs[0][0]};
+	
+		sc_set_global($usr_login);
+		sc_apl_status('app_change_pswd', 'on');
+		sc_redir("app_change_pswd", act_code=$act_code; usr_login=$usr_login);
+	}
+	else
+	{
+		sc_alert( {lang_act_code_error} );
+	}
+//sc_exit(ok);
+}
+*/
+
+if(isset([usr_login]) && !empty([usr_login]))
+{
+	send_pswd_mail();
+	sc_redir('app_Login');
+}
+
+/*
+viene del recién generado por si se requiere algo de ese código aquí.
+if(isset($_GET['act_code']) && !empty($_GET['act_code']))
+{
+	$act_code = trim($_GET['act_code']);
+	$sql = 	"SELECT 
+			login 
+		FROM 
+			sec_asp_users 
+		WHERE 
+			activation_code = ". sc_sql_injection($act_code);
+	sc_lookup(rs, $sql);
+
+	if({rs} !== FALSE && isset({rs}[0][0]))
+	{
+        $usr_login = {rs[0][0]};
+	
+		sc_set_global($usr_login);
+		sc_apl_status('apps_change_pswd', 'on');
+		sc_redir("apps_change_pswd", act_code=$act_code; usr_login=$usr_login);
+	}
+	else
+	{
+		sc_alert( {lang_act_code_error} );
+	}
+//sc_exit(ok);
+}
+
+
+if(isset([usr_login]) && !empty([usr_login]))
+{
+	send_pswd_mail();
+	//sc_redir('login');
+}*/

@@ -1,0 +1,13 @@
+$sql = "SELECT email FROM sec_asp_users WHERE login = '".$param_login."'";
+
+sc_lookup(rs, $sql);
+
+if({rs} === FALSE || count({rs}) == 0)
+{
+	sc_error_message({lang_error_login_not_exist});
+	sc_error_exit();
+}
+else
+{
+	return {rs[0][0]};
+}

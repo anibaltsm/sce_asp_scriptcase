@@ -1,0 +1,8 @@
+$usr_login = {login};
+$usr_email = search_email($usr_login);
+sc_set_global($usr_login);
+sc_set_global($usr_email);
+
+sc_log_add('Retrieve Password', {lang_log_retrieve_pswd});
+send_pswd_mail();
+sc_reset_global([usr_login], [usr_email]);

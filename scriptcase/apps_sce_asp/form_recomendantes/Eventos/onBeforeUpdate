@@ -32,10 +32,46 @@ if (isset({rs_dup[0][0]})) {
     // Contexto para el correo (aspirante que está guardando, desde asp_recomendantes antes de cambiar)
     $_ctx_nom_asp = '';
     $_ctx_leyenda = '';
-    sc_lookup(rs_ctx, "SELECT ar.id_asp_FK, ar.num_req FROM asp_recomendantes ar WHERE ar.id_recom_FK = " . sc_sql_injection($id_recom_cur) . " LIMIT 1");
+    $_ctx_num_req = '';
+    $_ctx_num_recom = null;
+    $_ctx_id_asp_current = isset([id_asp]) ? trim((string)[id_asp]) : '';
+
+    if ($_ctx_id_asp_current !== '') {
+        sc_lookup(
+            rs_ctx,
+            "SELECT ar.id_asp_FK, ar.num_req
+             FROM asp_recomendantes ar
+             WHERE ar.id_recom_FK = " . sc_sql_injection($id_recom_cur) . "
+               AND ar.id_asp_FK = " . sc_sql_injection($_ctx_id_asp_current) . "
+             ORDER BY ar.id_asp_recom DESC
+             LIMIT 1"
+        );
+    }
+
+    // Fallback defensivo: si por algún motivo no viene [id_asp], usar cualquier vínculo del id_recom actual.
+    if (!isset({rs_ctx[0][0]}) || !isset({rs_ctx[0][1]})) {
+        sc_lookup(
+            rs_ctx,
+            "SELECT ar.id_asp_FK, ar.num_req
+             FROM asp_recomendantes ar
+             WHERE ar.id_recom_FK = " . sc_sql_injection($id_recom_cur) . "
+             ORDER BY ar.id_asp_recom DESC
+             LIMIT 1"
+        );
+    }
+
     if (isset({rs_ctx[0][0]}) && isset({rs_ctx[0][1]})) {
         $_ctx_id_asp  = trim({rs_ctx[0][0]});
         $_ctx_num_req = trim({rs_ctx[0][1]});
+
+        if ((int)$_ctx_num_req === 10) {
+            $_ctx_num_recom = 1;
+        } elseif ((int)$_ctx_num_req === 11) {
+            $_ctx_num_recom = 2;
+        } elseif ((int)$_ctx_num_req === 13) {
+            $_ctx_num_recom = 3;
+        }
+
         sc_lookup(rs_asp, "SELECT nombres, ap_pat, ap_mat FROM aspirantes WHERE id_asp = " . sc_sql_injection($_ctx_id_asp));
         if (isset({rs_asp[0][0]})) {
             $_ctx_nom_asp = htmlspecialchars(trim(trim({rs_asp[0][0]}) . ' ' . trim({rs_asp[0][1]}) . ' ' . trim({rs_asp[0][2]})));
@@ -48,6 +84,25 @@ if (isset({rs_dup[0][0]})) {
 
     sc_exec_sql("UPDATE asp_recomendantes SET id_recom_FK = $id_recom_canonico WHERE id_recom_FK = " . sc_sql_injection($id_recom_cur));
     sc_exec_sql("DELETE FROM recomendantes WHERE id_recom = " . sc_sql_injection($id_recom_cur));
+
+    // Sincronizar num_recom del registro canónico con el num_req de este guardado, solo si no genera ambigüedad.
+    // Caso ambiguo: un mismo recomendante ligado a distintos num_req (ej. 11 y 13) en aspirantes diferentes.
+    if ($_ctx_num_recom !== null) {
+        sc_lookup(
+            rs_req_canon,
+            "SELECT DISTINCT CAST(num_req AS UNSIGNED) AS num_req_dist
+             FROM asp_recomendantes
+             WHERE id_recom_FK = $id_recom_canonico"
+        );
+        $total_dist = is_array({rs_req_canon}) ? count({rs_req_canon}) : 0;
+        if ($total_dist <= 1) {
+            sc_exec_sql("UPDATE recomendantes SET num_recom = " . $_ctx_num_recom . " WHERE id_recom = $id_recom_canonico");
+            error_log("form_recomendantes OnBeforeUpdate: num_recom sincronizado en canonico=$id_recom_canonico a $_ctx_num_recom (num_req=$_ctx_num_req)");
+        } else {
+            error_log("form_recomendantes OnBeforeUpdate: WARN no se sincroniza num_recom en canonico=$id_recom_canonico por num_req múltiples asociados");
+        }
+    }
+
     sc_commit_trans();
 
     $url_login = 'https://posgrados.inecol.mx/sce_asp/aspirantes/';

@@ -17,6 +17,39 @@ if ($cc_edit_val == 0 || $cc_edit_val === '0') {
     sc_field_disabled_record("nombre_=true;apellido_p_=true;apellido_m_=true;correo_=true");
 }
 
+// Mostrar num_recom según el vínculo del aspirante actual (num_req), no solo por recomendantes.num_recom.
+// Esto evita duplicados visuales cuando un mismo recomendante se comparte entre aspirantes con distinto rol.
+$id_recom_ctx = trim((string){id_recom});
+$id_asp_ctx = isset([id_asp]) ? trim((string)[id_asp]) : '';
+if ($id_recom_ctx !== '' && $id_asp_ctx !== '') {
+    sc_lookup(
+        rs_numreq_ctx,
+        "SELECT num_req
+         FROM asp_recomendantes
+         WHERE id_asp_FK = " . sc_sql_injection($id_asp_ctx) . "
+           AND id_recom_FK = " . sc_sql_injection($id_recom_ctx) . "
+         ORDER BY id_asp_recom DESC
+         LIMIT 1"
+    );
+
+    if (isset({rs_numreq_ctx[0][0]})) {
+        $num_req_ctx = (int){rs_numreq_ctx[0][0]};
+        $num_recom_ui = null;
+        if ($num_req_ctx === 10) {
+            $num_recom_ui = 1;
+        } elseif ($num_req_ctx === 11) {
+            $num_recom_ui = 2;
+        } elseif ($num_req_ctx === 13) {
+            $num_recom_ui = 3;
+        }
+
+        if ($num_recom_ui !== null) {
+            {num_recom} = $num_recom_ui;
+            error_log("🔢 form_recomendantes onLoadRecord: id_asp=$id_asp_ctx id_recom=$id_recom_ctx num_req=$num_req_ctx => num_recom_ui=$num_recom_ui");
+        }
+    }
+}
+
 // Inyectar JavaScript adicional para ocultar botones de borrar
 ?>
 <script>
