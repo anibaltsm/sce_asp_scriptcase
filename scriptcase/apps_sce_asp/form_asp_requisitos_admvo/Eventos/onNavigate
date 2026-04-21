@@ -1,0 +1,119 @@
+// ------------------------------------------------------------------
+// Referencia oficial Scriptcase v9 (eventos de form):
+//   onLoad       : https://www.scriptcase.net/docs/en_us/v9/manual/06-applications/05-form-application/18-form-events/06-onLoad/
+//   onLoadRecord : https://www.scriptcase.net/docs/en_us/v9/manual/06-applications/05-form-application/18-form-events/05-onLoadRecord/
+//   onNavigate   : https://www.scriptcase.net/docs/en_us/v9/manual/06-applications/05-form-application/18-form-events/03-onNavigate/
+//
+// onNavigate: se dispara cada vez que se navega entre registros
+// (botones <<, <, >, >>), incluso en modo AJAX (navigate_form).
+// Aquí es donde hay que recalcular la URL del visor y empujarla al
+// botón, porque onLoadRecord NO corre durante la navegación AJAX
+// (Scriptcase lo envuelve con
+//   if (!$this->NM_ajax_flag || !isset($this->nmgp_refresh_fields))).
+//
+// Contrato con onLoad:
+//   - window.scFormAdmvoVisorApply(url, idAsp): si ya existe, se llama.
+//   - window.__scFormAdmvoVisorPending = {url, idAsp}: fallback si el
+//     JS de onLoad aún no terminó de ejecutarse.
+// ------------------------------------------------------------------
+
+$__ajax_flag = isset($this->NM_ajax_flag) ? (bool)$this->NM_ajax_flag : false;
+$__ajax_op   = isset($this->NM_ajax_opcao) ? $this->NM_ajax_opcao : '(none)';
+$__id_asp    = intval({id_asp_FK});
+$__id_req    = intval({id_asp_req});
+error_log(
+    'VISOR onNavigate | ajax=' . ($__ajax_flag ? 'true' : 'false')
+    . ' opcao=' . $__ajax_op
+    . ' id_asp_FK=' . $__id_asp
+    . ' id_asp_req=' . $__id_req
+);
+
+// Fallback: si id_asp_FK vino vacío, resolver por id_asp_req
+$__visor_id = $__id_asp;
+if ($__visor_id <= 0 && $__id_req > 0) {
+    sc_lookup(rs_vis_idasp_nv, 'SELECT id_asp_FK FROM asp_requisitos WHERE id_asp_req = ' . $__id_req . ' LIMIT 1');
+    if (isset({rs_vis_idasp_nv[0][0]})) {
+        $__visor_id = intval({rs_vis_idasp_nv[0][0]});
+    }
+    error_log('VISOR onNavigate fallback id_asp=' . $__visor_id);
+}
+
+// Ruta física del visor (dev vs deploy)
+$__dirs = array(
+    '/opt/lampp/htdocs/visor-requisitos-admvo',
+    '/opt/sce_asp_scriptcase/visor-requisitos-admvo',
+);
+$__vpath = '';
+foreach ($__dirs as $__d) {
+    if (is_dir($__d) && is_file($__d . '/lib/token.php') && is_file($__d . '/config.php')) {
+        $__vpath = $__d;
+        break;
+    }
+}
+
+// Generar token y URL absoluta
+$__vurl = '';
+if ($__vpath !== '' && $__visor_id > 0) {
+    require_once $__vpath . '/config.php';
+    require_once $__vpath . '/lib/token.php';
+    try {
+        $__tok = generateDownloadToken($__visor_id, 'adm-visor-req');
+    } catch (Throwable $e) {
+        $__tok = '';
+        error_log('VISOR onNavigate token ERROR: ' . $e->getMessage());
+    }
+    if ($__tok !== '') {
+        $__base = rtrim(preg_replace(
+            '#/(index|viewer|serve)\.php.*$#i', '',
+            defined('VISOR_PUBLIC_BASE_URL') ? trim((string)VISOR_PUBLIC_BASE_URL) : 'https://posgrados.inecol.mx/visor-requisitos-admvo/'
+        ), '/');
+        $__vurl = $__base . '/index.php?type=adm-visor-req&id=' . $__visor_id . '&token=' . rawurlencode($__tok);
+    }
+}
+error_log('VISOR onNavigate url=' . ($__vurl !== '' ? 'OK len=' . strlen($__vurl) : 'EMPTY') . ' id_asp=' . $__visor_id);
+
+// Empujar al botón vía JS. En AJAX navigate_form, Scriptcase empaqueta
+// el output del evento en la respuesta y lo inyecta en el DOM del form,
+// por lo que los <script> dentro del bloque se ejecutan.
+$__jf  = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
+$__uj  = json_encode($__vurl, $__jf);
+$__idj = json_encode($__visor_id, $__jf);
+?>
+<script type="text/javascript">
+(function () {
+    var u   = <?php echo $__uj; ?>;
+    var idA = <?php echo $__idj; ?>;
+
+    function tryApply(win) {
+        try {
+            if (win && typeof win.scFormAdmvoVisorApply === 'function') {
+                win.scFormAdmvoVisorApply(u, idA);
+                return true;
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    // 1) ventana actual, 2) parent (caso iframe scriptcase)
+    if (tryApply(window)) { return; }
+    try { if (tryApply(window.parent)) { return; } } catch (e) {}
+
+    // 3) iframes hijos (por si el botón vive en uno)
+    try {
+        var frames = document.getElementsByTagName('iframe');
+        for (var i = 0; i < frames.length; i++) {
+            try {
+                if (tryApply(frames[i].contentWindow)) { return; }
+            } catch (eFrame) {}
+        }
+    } catch (e) {}
+
+    // 4) Fallback: guardar pendiente donde onLoad lo pueda recoger
+    var store = window;
+    try {
+        if (window.parent && window.parent !== window) { store = window.parent; }
+    } catch (e) {}
+    store.__scFormAdmvoVisorPending = { url: u, idAsp: idA };
+})();
+</script>
+<?php

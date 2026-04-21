@@ -94,6 +94,35 @@ grep -R "adm-visor-req" /opt/lampp/htdocs/sce_asp_test/form_asp_requisitos_admvo
 
 Si **no** hay coincidencias, el botón no puede mostrarse: el fallo es de **publicación o sincronización del evento**, no de la lógica del visor en sí. Compruebe también en el navegador (F12) el elemento `#sc_btn_visor_expediente_admvo` o el texto “Abrir expediente”.
 
+### Logs: `sce_asp_test` vs PHP
+
+Los errores **no** suelen escribirse dentro de `/opt/lampp/htdocs/sce_asp_test/` (no hay `*.log` de aplicación ahí). Lo normal es revisar:
+
+```bash
+tail -n 120 /opt/lampp/logs/php_error_log | grep -i form_asp_requisitos_admvo
+```
+
+Mensajes antiguos como `onLoadRecord visor: ruta inválida ...` indican que en ese momento no existía el visor en disco o faltaba el symlink; no implican que el fallo del “primer clic” esté resuelto solo con logs.
+
+### Parche obligatorio tras cada “Generar código” (AJAX grid → formulario)
+
+Scriptcase envuelve el código de **onLoad** y **onLoadRecord** del formulario en:
+
+```php
+if (!$this->NM_ajax_flag || !isset($this->nmgp_refresh_fields)) {
+```
+
+Cuando se abre el formulario desde un grid con **AJAX** y `nmgp_refresh_fields` definido, esa condición es **falsa** y **todo** el bloque (incluido el `<script>` del visor) **no se ejecuta**. Síntoma típico: el id del ASP o el enlace no se actualizan al **primer** clic y sí al segundo.
+
+Tras **publicar** o **regenerar** `form_asp_requisitos_admvo_apl.php`, aplique el parche (ruta de ejemplo para pruebas):
+
+```bash
+sudo python3 /opt/sce_asp_scriptcase/scriptcase/apps_sce_asp/form_asp_requisitos_admvo/patches/apply_admvo_apl_ajax_guard_fix.py \
+  /opt/lampp/htdocs/sce_asp_test/form_asp_requisitos_admvo/form_asp_requisitos_admvo_apl.php
+```
+
+Repita con la ruta del `*_apl.php` en **producción** (`sce_asp`, etc.) si aplica. El script sustituye esa condición por `if (true)` **solo** en `nm_proc_onload_record` y `nm_proc_onload`, dejando intacto el resto del archivo.
+
 ### Formulario multipágina y detalle en iframe
 
 Este formulario puede usarse como **multiregistro / paginación parcial** y embebido con `script_case_detail=Y` (iframe). En ese contexto:

@@ -1,20 +1,69 @@
 // ------------------------------------------------------------------
-// Botón "Abrir expediente" → visor (token HMAC, type=adm-visor-req).
-// Formulario multipágina / detalle en iframe: inserta el enlace en el
-// toolbar superior (lado derecho), sin fallback fuera del toolbar.
+// Referencia oficial Scriptcase v9 (eventos de form):
+//   onLoad       : https://www.scriptcase.net/docs/en_us/v9/manual/06-applications/05-form-application/18-form-events/06-onLoad/
+//   onLoadRecord : https://www.scriptcase.net/docs/en_us/v9/manual/06-applications/05-form-application/18-form-events/05-onLoadRecord/
+//   onNavigate   : https://www.scriptcase.net/docs/en_us/v9/manual/06-applications/05-form-application/18-form-events/03-onNavigate/
+//
+// Botones del toolbar (izquierda):
+//   1) "Abrir expediente" → visor (token HMAC, type=adm-visor-req).
+//   2) "Aprobar todos los requisitos" → UPDATE cc_correcto='1' a todos
+//      los requisitos del aspirante, con confirmación y auditoría.
+//
+// Formulario multipágina / detalle en iframe: los botones se insertan
+// dinámicamente en el toolbar, con fallback fijo si no hay toolbar.
 //
 // id_asp_FK es numérico: no sirve inyectar HTML en el campo.
-// En onLoad global {id_asp_FK} a veces viene vacío: se intenta id_asp_req.
+// En onLoad global {id_asp_FK} a veces viene vacío o contaminado por la
+// sesión previa: la verdad del id_asp la entrega onLoadRecord (y por eso
+// el boot() respeta window.__visorLastAppliedIdAsp y NO sobrescribe).
+//
+// NUNCA hacer return antes del <script> por id_asp vacío: al abrir desde
+// grid, onLoad puede ir sin datos y onLoadRecord define URL/id correctos
+// vía scFormAdmvoVisorApply / __scFormAdmvoVisorPending. Si no se emite
+// este bloque, el primer clic no actualiza el botón (hay que dar dos).
 //
 // IMPORTANTE: este archivo debe GENERARSE/PUBLICARSE desde Scriptcase al
 // servidor (sce_asp_test / producción); no basta con tenerlo solo en Git.
 // Ver docs/VISOR_DOCUMENTOS_ADMVO.md (verificación con grep).
 // ------------------------------------------------------------------
 
-$visor_path = '/opt/lampp/htdocs/visor-requisitos-admvo';
-if (!is_dir($visor_path) || !is_file($visor_path . '/lib/token.php') || !is_file($visor_path . '/config.php')) {
-    error_log('form_asp_requisitos_admvo onLoad visor: ruta inválida ' . $visor_path);
-    return;
+// ------------------------------------------------------------------
+// Acción "Aprobar todos los requisitos": si el form recibe el flag GET
+// ejecuta un UPDATE masivo sobre asp_requisitos del aspirante indicado,
+// con auditoría completa (fecha, IP, usuario). No usa endpoint aparte
+// ni token: reutiliza la sesión ya autenticada de Scriptcase.
+// ------------------------------------------------------------------
+if (isset($_GET['sc_visor_action']) && $_GET['sc_visor_action'] === 'approve_all') {
+    $__approve_id = isset($_GET['sc_visor_idasp']) ? intval($_GET['sc_visor_idasp']) : 0;
+    $__approve_ip = isset($_SERVER['REMOTE_ADDR']) ? substr($_SERVER['REMOTE_ADDR'], 0, 45) : '';
+    if ($__approve_id > 0) {
+        $__sql_aprobar = "UPDATE asp_requisitos SET "
+            . " cc_correcto='1',"
+            . " fecha_revision=NOW(),"
+            . " ip_revision='" . addslashes($__approve_ip) . "',"
+            . " login_last='" . addslashes('[usr_login]') . "'"
+            . " WHERE id_asp_FK=" . $__approve_id;
+        sc_exec_sql($__sql_aprobar);
+        error_log('VISOR approve_all OK id_asp=' . $__approve_id . ' ip=' . $__approve_ip . ' user=' . '[usr_login]');
+    } else {
+        error_log('VISOR approve_all IGNORADO (id_asp invalido)');
+    }
+}
+
+$__admvo_visor_dirs = array(
+    '/opt/lampp/htdocs/visor-requisitos-admvo',
+    '/opt/sce_asp_scriptcase/visor-requisitos-admvo',
+);
+$visor_path = '';
+foreach ($__admvo_visor_dirs as $__d) {
+    if (is_dir($__d) && is_file($__d . '/lib/token.php') && is_file($__d . '/config.php')) {
+        $visor_path = $__d;
+        break;
+    }
+}
+$visor_ok = ($visor_path !== '');
+if (!$visor_ok) {
+    error_log('form_asp_requisitos_admvo onLoad visor: no válido en rutas: ' . implode(', ', $__admvo_visor_dirs));
 }
 
 $id_asp = intval({id_asp_FK});
@@ -30,60 +79,254 @@ if ($id_asp <= 0) {
     }
 }
 
-if ($id_asp <= 0) {
-    return;
+$visor_url = '';
+if ($visor_ok && $id_asp > 0) {
+    require_once $visor_path . '/config.php';
+    require_once $visor_path . '/lib/token.php';
+    try {
+        $token = generateDownloadToken($id_asp, 'adm-visor-req');
+    } catch (Throwable $e) {
+        error_log('form_asp_requisitos_admvo onLoad visor: ' . $e->getMessage());
+        $token = '';
+    }
+    if ($token !== '') {
+        $base = defined('VISOR_PUBLIC_BASE_URL')
+            ? trim((string) VISOR_PUBLIC_BASE_URL)
+            : 'https://posgrados.inecol.mx/visor-requisitos-admvo/';
+        $base = preg_replace('#/(index|viewer|serve)\.php.*$#i', '', $base);
+        $base = rtrim($base, '/');
+        $visor_url = $base . '/index.php?type=adm-visor-req&id=' . $id_asp . '&token=' . rawurlencode($token);
+    }
 }
 
-require_once $visor_path . '/config.php';
-require_once $visor_path . '/lib/token.php';
-
-try {
-    $token = generateDownloadToken($id_asp, 'adm-visor-req');
-} catch (Throwable $e) {
-    error_log('form_asp_requisitos_admvo onLoad visor: ' . $e->getMessage());
-    return;
-}
-
-$base = defined('VISOR_PUBLIC_BASE_URL')
-    ? trim((string) VISOR_PUBLIC_BASE_URL)
-    : 'https://posgrados.inecol.mx/visor-requisitos-admvo/';
-$base = preg_replace('#/(index|viewer|serve)\.php.*$#i', '', $base);
-$base = rtrim($base, '/');
-$visor_url = $base . '/index.php?type=adm-visor-req&id=' . $id_asp . '&token=' . rawurlencode($token);
-
-$url_json = json_encode($visor_url, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+$json_flags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
+$url_json = json_encode($visor_url, $json_flags);
+$id_asp_json = json_encode($id_asp, $json_flags);
 ?>
 <script type="text/javascript">
 (function () {
-    var url = <?php echo $url_json; ?>;
-    if (!url) { return; }
-    function insertBtn() {
-        if (document.getElementById('sc_btn_visor_expediente_admvo')) { return; }
-        var a = document.createElement('a');
-        a.id = 'sc_btn_visor_expediente_admvo';
-        a.href = url;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.setAttribute('title', 'Abrir expediente administrativo (visor documentos)');
-        a.appendChild(document.createTextNode('Abrir expediente'));
-        var rightPad = document.querySelector('.sc-toolbar-top td.scFormToolbarPadding[align="left"]')
-            || document.querySelector('.sc-toolbar-top td.scFormToolbarPadding:last-child');
-        var tb = document.querySelector('.scFormToolbar.sc-toolbar-top')
-            || document.querySelector('.scFormToolbar')
-            || document.querySelector('[id*="toolbar"]')
-            || document.querySelector('.sc-ui-toolbar');
-        if (!rightPad && tb) {
-            rightPad = tb.querySelector('td.scFormToolbarPadding[align="left"]')
-                || tb.querySelector('td.scFormToolbarPadding:last-child');
+    var initialUrl = <?php echo $url_json; ?>;
+    var initialIdAsp = <?php echo $id_asp_json; ?>;
+    var BTN_ID = 'sc_btn_visor_expediente_admvo';
+    var APPROVE_BTN_ID = 'sc_btn_visor_aprobar_admvo';
+    var ACTION_HOST_ID = 'sc_btns_visor_host_admvo';
+    var BTN_BASE_TEXT = 'Abrir expediente';
+    var APPROVE_BASE_TEXT = 'Aprobar todos los requisitos';
+
+    function firstMatch(root, list) {
+        var i, el, sel;
+        root = root || document;
+        for (i = 0; i < list.length; i++) {
+            sel = list[i];
+            el = root.querySelector(sel);
+            if (el) { return el; }
         }
-        if (!rightPad) { return; }
-        a.style.cssText = 'display:inline-block;margin:6px 8px 6px 0;padding:6px 12px;background:#0066cc;color:#fff !important;text-decoration:none;border-radius:4px;font-size:12px;font-weight:600;vertical-align:middle;';
-        rightPad.insertBefore(a, rightPad.firstChild);
+        return null;
     }
+
+    function toolbarCell() {
+        var padSelectors = [
+            '.sc-toolbar-top td.scFormToolbarPadding[align="left"]',
+            '.sc-toolbar-top td.scFormToolbarPadding',
+            '.scFormToolbar td.scFormToolbarPadding[align="left"]',
+            '.scFormToolbar td.scFormToolbarPadding'
+        ];
+        var cell = firstMatch(document, padSelectors);
+        if (cell) { return cell; }
+        var tb = firstMatch(document, [
+            '.scFormToolbar.sc-toolbar-top',
+            '.scFormToolbar',
+            '[id*="toolbar"]',
+            '.sc-ui-toolbar'
+        ]);
+        if (!tb) { return null; }
+        return firstMatch(tb, [
+            'td.scFormToolbarPadding[align="left"]',
+            'td.scFormToolbarPadding'
+        ]);
+    }
+
+    function btnStyleInline() {
+        return 'display:inline-block;padding:6px 12px;background:#0066cc;color:#fff !important;text-decoration:none;border:0;cursor:pointer;border-radius:4px;font-size:12px;font-weight:600;line-height:1.2;white-space:nowrap;';
+    }
+
+    function btnApproveStyleInline() {
+        return 'display:inline-block;padding:6px 12px;background:#1e8e3e;color:#fff !important;text-decoration:none;border:0;cursor:pointer;border-radius:4px;font-size:12px;font-weight:600;line-height:1.2;white-space:nowrap;';
+    }
+
+    function actionHostStyleFixed() {
+        return 'position:fixed;top:10px;left:10px;z-index:99999;display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
+    }
+
+    function actionHostStyleInline() {
+        return 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;';
+    }
+
+    function ensureActionHost() {
+        var existing = document.getElementById(ACTION_HOST_ID);
+        if (existing) { return existing; }
+
+        var host = document.createElement('div');
+        host.id = ACTION_HOST_ID;
+
+        var cell = toolbarCell();
+        if (cell) {
+            host.style.cssText = actionHostStyleInline();
+            cell.appendChild(host);
+            return host;
+        }
+        if (document.body) {
+            host.style.cssText = actionHostStyleFixed();
+            document.body.appendChild(host);
+            return host;
+        }
+        return null;
+    }
+
+    function ensureBtn() {
+        var existing = document.getElementById(BTN_ID);
+        if (existing) { return existing; }
+        var a = document.createElement('a');
+        a.id = BTN_ID;
+        var host = ensureActionHost();
+        if (!host) { return null; }
+        a.style.cssText = btnStyleInline();
+        host.appendChild(a);
+        return a;
+    }
+
+    function ensureApproveBtn() {
+        var existing = document.getElementById(APPROVE_BTN_ID);
+        if (existing) { return existing; }
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.id = APPROVE_BTN_ID;
+        b.textContent = APPROVE_BASE_TEXT;
+        b.style.cssText = btnApproveStyleInline();
+        b.style.display = 'none';
+        var host = ensureActionHost();
+        if (!host) { return null; }
+        host.appendChild(b);
+        return b;
+    }
+
+    function applyApproveBtn(idAsp) {
+        var aspId = parseInt(idAsp, 10);
+        var b = ensureApproveBtn();
+        if (!b) { return; }
+        if (!isFinite(aspId) || aspId <= 0) {
+            b.style.display = 'none';
+            b.onclick = null;
+            return;
+        }
+        b.style.display = 'inline-block';
+        b.textContent = APPROVE_BASE_TEXT + ' · ASP ' + aspId;
+        b.setAttribute('title', 'Aprobar TODOS los requisitos del aspirante ' + aspId);
+        b.onclick = function () {
+            if (!confirm('Se marcarán como CORRECTOS todos los requisitos del aspirante ' + aspId + '.\n\n¿Estás seguro?')) {
+                return false;
+            }
+            var u = new URL(location.href);
+            u.searchParams.set('sc_visor_action', 'approve_all');
+            u.searchParams.set('sc_visor_idasp', String(aspId));
+            u.searchParams.set('_t', String(Date.now()));
+            location.href = u.toString();
+        };
+    }
+
+    function applyVisorLink(url, idAsp) {
+        var aspId = parseInt(idAsp, 10);
+        var hasUrl = (typeof url === 'string' && url !== '');
+        var btn = ensureBtn();
+        if (!btn) { return; }
+        if (isFinite(aspId) && aspId > 0) { window.__visorLastAppliedIdAsp = aspId; }
+
+        if (!hasUrl || !isFinite(aspId) || aspId <= 0) {
+            btn.removeAttribute('href');
+            btn.setAttribute('aria-disabled', 'true');
+            btn.setAttribute('title', 'Expediente no disponible para este registro');
+            btn.textContent = BTN_BASE_TEXT;
+            btn.style.display = 'none';
+            applyApproveBtn(0);
+            return;
+        }
+
+        btn.href = url;
+        btn.target = '_blank';
+        btn.rel = 'noopener noreferrer';
+        btn.removeAttribute('aria-disabled');
+        btn.setAttribute('title', 'Abrir expediente administrativo (visor documentos) — ASP ' + aspId);
+        btn.textContent = BTN_BASE_TEXT + ' · ASP ' + aspId;
+        btn.style.display = 'inline-block';
+
+        applyApproveBtn(aspId);
+    }
+
+    window.scFormAdmvoVisorApply = function (url, idAsp) {
+        applyVisorLink((typeof url === 'string' ? url : ''), idAsp);
+    };
+
+    function pullPending() {
+        var p = window.__scFormAdmvoVisorPending;
+        if (p && typeof p === 'object') {
+            delete window.__scFormAdmvoVisorPending;
+            return p;
+        }
+        try {
+            if (window.parent && window.parent !== window) {
+                p = window.parent.__scFormAdmvoVisorPending;
+                if (p && typeof p === 'object') {
+                    delete window.parent.__scFormAdmvoVisorPending;
+                    return p;
+                }
+            }
+        } catch (e0) {}
+        return null;
+    }
+
+    function peekPending() {
+        var p = window.__scFormAdmvoVisorPending;
+        if (p && typeof p === 'object') { return p; }
+        try {
+            if (window.parent && window.parent !== window) {
+                p = window.parent.__scFormAdmvoVisorPending;
+                if (p && typeof p === 'object') { return p; }
+            }
+        } catch (e1) {}
+        return null;
+    }
+
+    function boot() {
+        var pending = pullPending();
+        var lastApplied = parseInt(window.__visorLastAppliedIdAsp, 10);
+        var hasFreshApply = isFinite(lastApplied) && lastApplied > 0;
+        if (pending && typeof pending === 'object') {
+            window.scFormAdmvoVisorApply(pending.url || '', pending.idAsp || 0);
+            return;
+        }
+        // Si onLoadRecord ya aplicó un id válido, NO sobrescribimos con initialIdAsp:
+        // en form multirregistro el onLoad global a veces recibe macros contaminadas
+        // por sesión previa (id del aspirante anterior). Respetar lo que aplicó
+        // onLoadRecord es la verdad de los datos cargados.
+        if (hasFreshApply) { return; }
+        window.scFormAdmvoVisorApply(initialUrl, initialIdAsp);
+    }
+
+    function bootWithRetry(attempt) {
+        attempt = attempt || 0;
+        boot();
+        var btn = document.getElementById(BTN_ID);
+        var pending = peekPending();
+        if (btn || (pending && typeof pending === 'object') || attempt >= 20) {
+            return;
+        }
+        setTimeout(function () { bootWithRetry(attempt + 1); }, 75);
+    }
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', insertBtn);
+        document.addEventListener('DOMContentLoaded', function () { bootWithRetry(0); });
     } else {
-        insertBtn();
+        bootWithRetry(0);
     }
 })();
 </script>
